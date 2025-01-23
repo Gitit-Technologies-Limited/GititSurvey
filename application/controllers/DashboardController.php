@@ -212,7 +212,7 @@ class DashboardController extends LSBaseController
             $surveyTitle = Yii::app()->db->createCommand()
                 ->select('surveyls_title')
                 ->from('{{surveys_languagesettings}}')
-                ->where('surveyls_survey_id = :sid AND surveyls_language = :language', [':sid' => $survey['sid'], ':language' => 'en'])  // Assuming English ('en') language
+                ->where('surveyls_survey_id = :sid AND surveyls_language = :language', [':sid' => $survey['sid'], ':language' => 'en'])
                 ->queryScalar();
 
             // Construct the response table name for each survey
@@ -285,8 +285,7 @@ class DashboardController extends LSBaseController
                 ->order('response_date ASC')
                 ->queryAll();
 
-            // Log the result for debugging
-            Yii::log('Response trends data: ' . print_r($data, true), 'info');
+
 
             return $data;
         } catch (Exception $e) {
@@ -301,17 +300,16 @@ class DashboardController extends LSBaseController
     {
 
         $rawPost = file_get_contents('php://input');
-        Yii::log('Raw POST data: ' . $rawPost, 'info'); // Debugging
+
 
         $decodedPost = json_decode($rawPost, true);
-        Yii::log('Decoded POST data: ' . print_r($decodedPost, true), 'info');
+
 
         $surveyId = isset($decodedPost['surveyid']) ? $decodedPost['surveyid'] : null;
-        Yii::log('Survey ID: ' . $surveyId, 'info');
 
         // Fetch the specific POST parameter 'surveyid'
         $surveyId = Yii::app()->request->getPost('surveyid', null);
-        Yii::log('Survey ID in widget: ' . $surveyId, 'info'); // Debugging
+
 
         if ($surveyId) {
             $data = $this->getSurveyResponseTrends($surveyId);
