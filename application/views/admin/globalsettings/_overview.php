@@ -45,37 +45,37 @@
 
 <div style="height:100vh">
     <div class="row mb-5">
-        <div class="col-3">
+        <div class="col-md-3 col-6">
             <div class="card card-body mb-3">
                 <span class="text-primary fw-bold"> <?php eT("Users"); ?></span>
                 <span class="text-primary fw-bolder fs-6"><?php echo $usercount; ?></span>
             </div>
         </div>
-        <div class="col-3">
+        <div class="col-md-3 col-6">
             <div class="card card-body">
                 <span class="text-primary fw-bold"> <?php eT("Surveys"); ?></span>
                 <span class="text-primary fw-bolder fs-6"><?php echo $surveycount; ?></span>
             </div>
         </div>
-        <div class="col-3">
+        <div class="col-md-3 col-6">
             <div class="card card-body">
                 <span class="text-primary fw-bold"> <?php eT("Active surveys"); ?></span>
                 <span class="text-primary fw-bolder fs-6"><?php echo $activesurveycount; ?></span>
             </div>
         </div>
-        <div class="col-3">
+        <div class="col-md-3 col-6  mb-md-0 mb-3">
             <div class="card card-body">
                 <span class="text-primary fw-bold"> <?php eT("Deactivated result tables"); ?></span>
                 <span class="text-primary fw-bolder fs-6"><?php echo $deactivatedsurveys; ?></span>
             </div>
         </div>
-        <div class="col-3">
+        <div class="col-md-3 col-6">
             <div class="card card-body">
                 <span class="text-primary fw-bold"> <?php eT("Active survey participants tables"); ?></span>
                 <span class="text-primary fw-bolder fs-6"><?php echo $activetokens; ?></span>
             </div>
         </div>
-        <div class="col-3">
+        <div class="col-md-3 col-6 ">
             <div class="card card-body">
                 <span class="text-primary fw-bold"> <?php eT("Deactivated survey participants tables"); ?></span>
                 <span class="text-primary fw-bolder fs-6"><?php echo $deactivatedtokens; ?></span>
