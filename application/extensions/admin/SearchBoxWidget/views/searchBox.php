@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This template renders a search box and action bar for managing surveys view type.
  * It includes filters for survey status, group selection, and a search field.
@@ -100,7 +101,7 @@
                     </div>
                     <div class="survey-actionbar-item">
                         <button id="survey_reset"
-                                class="btn btn-outline-g-700 btn-sm survey-actionbar-button <?= !empty(App()->request->getParam('Survey')) ? '' : 'd-none' ?>">
+                            class="btn btn-outline-g-700 btn-sm survey-actionbar-button <?= !empty(App()->request->getParam('Survey')) ? '' : 'd-none' ?>">
                             <i class="ri-refresh-line"></i>
                             <?= gT('Reset') ?>
                         </button>
