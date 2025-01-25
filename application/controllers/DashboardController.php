@@ -325,7 +325,7 @@ class DashboardController extends LSBaseController
     public function getRecentActivitySummary()
     {
         $recentActivities = [];
-
+    
         // Fetch active surveys and their recent responses
         $surveyIds = Yii::app()->db->createCommand("
             SELECT sid, surveyls_title
@@ -334,42 +334,45 @@ class DashboardController extends LSBaseController
               ON surveys.sid = surveys_languagesettings.surveyls_survey_id
             WHERE active = 'Y'
         ")->queryAll();
-
+    
         foreach ($surveyIds as $survey) {
             $surveyId = $survey['sid'];
             $surveyTitle = $survey['surveyls_title'];
-
+    
             // Count new responses
             $responseCount = Yii::app()->db->createCommand("
                 SELECT COUNT(*) AS response_count 
                 FROM {{survey_$surveyId}}
                 WHERE submitdate IS NOT NULL
             ")->queryScalar();
-
+    
             $recentActivities[] = [
                 'type' => 'survey_response',
                 'message' => "Survey \"$surveyTitle\" received $responseCount new responses.",
+                'surveyId' => $surveyId,
+                'date' => date('Y-m-d'),
             ];
         }
-
+    
         // Fetch recently edited drafts
         $editedDrafts = Yii::app()->db->createCommand("
-            SELECT surveyls_title
+            SELECT sid, surveyls_title, last_edited
             FROM surveys
             JOIN surveys_languagesettings 
               ON surveys.sid = surveys_languagesettings.surveyls_survey_id
             WHERE active = 'N'
-           
             LIMIT 5
         ")->queryAll();
-
+    
         foreach ($editedDrafts as $draft) {
             $recentActivities[] = [
                 'type' => 'draft_edited',
-                'message' => "survey \"{$draft['surveyls_title']}\" was edited.",
+                'message' => "Survey \"{$draft['surveyls_title']}\" was edited.",
+                'surveyId' => $draft['sid'],
+                'date' => $draft['last_edited'], 
             ];
         }
-
+    
         // Fetch new user creation actions
         $newUsers = Yii::app()->db->createCommand("
             SELECT users_name, created
@@ -377,14 +380,37 @@ class DashboardController extends LSBaseController
             ORDER BY created DESC
             LIMIT 5
         ")->queryAll();
-
+    
         foreach ($newUsers as $user) {
             $recentActivities[] = [
                 'type' => 'user_creation',
-                'message' => "new user \"{$user['users_name']}\" created on {$user['created']}.",
+                'message' => "New user \"{$user['users_name']}\" created.",
+                'date' => $user['created'], // Use the created date
             ];
         }
-
-        return $recentActivities;
+    
+        // Sort activities by date (most recent first)
+        usort($recentActivities, function ($a, $b) {
+            return strtotime($b['date']) - strtotime($a['date']);
+        });
+    
+        // Group activities by Today, Yesterday, and other dates
+        $groupedActivities = [];
+        $today = date('Y-m-d');
+        $yesterday = date('Y-m-d', strtotime('-1 day'));
+    
+        foreach ($recentActivities as $activity) {
+            $activityDate = date('Y-m-d', strtotime($activity['date']));
+            if ($activityDate === $today) {
+                $groupedActivities['Today'][] = $activity;
+            } elseif ($activityDate === $yesterday) {
+                $groupedActivities['Yesterday'][] = $activity;
+            } else {
+                $groupedActivities[date('F d, Y', strtotime($activity['date']))][] = $activity;
+            }
+        }
+    
+        return $groupedActivities;
     }
+    
 }

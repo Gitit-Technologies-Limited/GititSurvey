@@ -578,26 +578,29 @@ $recentActivities = $this->getRecentActivitySummary();
 
                                         <div class="card mb-4">
                                             <div class="card-body">
-                                                <div class="d-flex gap-4 mb-5">
-                                                    <h5 style="font-size:small">Response Trends</h5>
+                                                <div class="card card-body">
+                                                    <div class="d-flex  justify-content-between mb-5">
+                                                        <h5 style="font-size:small">Response Trends</h5>
 
-                                                    <div class="d-flex justify-content-between align-items-center">
-                                                        <select id="surveyDropdown" class="form-select w-auto">
-                                                            <option value="" disabled>Select Survey</option>
-                                                            <?php
+                                                        <div class="d-flex justify-content-between align-items-center">
+                                                            <select id="surveyDropdown" class="form-select rounded-3 form-select-sm w-auto">
+                                                                <option value="" disabled>Select Survey</option>
+                                                                <?php
 
-                                                            foreach ($surveyList as $survey) {
-                                                                echo "<option value='{$survey['sid']}'>{$survey['surveyls_title']}</option>";
-                                                            }
-                                                            ?>
-                                                        </select>
+                                                                foreach ($surveyList as $survey) {
+                                                                    echo "<option value='{$survey['sid']}'>{$survey['surveyls_title']}</option>";
+                                                                }
+                                                                ?>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+
+
+                                                    <div class="chart-container">
+                                                        <canvas id="responseChart"></canvas>
                                                     </div>
                                                 </div>
 
-
-                                                <div class="chart-container">
-                                                    <canvas id="responseChart"></canvas>
-                                                </div>
                                             </div>
                                         </div>
 
@@ -617,41 +620,72 @@ $recentActivities = $this->getRecentActivitySummary();
                                     <div class="col-lg-3 col-md-12  mb-4 mb-lg-0">
                                         <div class="card p-3 ">
                                             <h5 class="card-title">Recent Activity</h5>
-                                            <ul class="list-group list-group-flush" style="height:50vh; overflow-x:scroll">
-                                                <!-- <li class="list-group-item"> -->
+                                            <ul class="list-group list-group-flush" style="height: 50vh; overflow-x: scroll;">
                                                 <div>
-                                                    <!-- <div class="" style="background:#8E8E8E; width:1px; height:50vh; border:'1px solid black'; position:absolute; left:18px">
+                                                    <?php foreach ($recentActivities as $heading => $activities): ?>
+                                                        <!-- Date Group Heading -->
+                                                        <h3 style="margin-top: 50px;"><?= $heading ?></h3>
+                                                        <?php foreach ($activities as $activity): ?>
+                                                            <div class="activity-item" style="margin-top: 20px; position: relative;">
+                                                                <!-- Circle Icon -->
+                                                                <div class="activity-icon border rounded-circle my-2 mt-5" style="background: #122867; width: 25px; height: 25px; margin-right: 35px;"></div>
 
-                                    </div> -->
-                                                    <?php
+                                                                <!-- Activity Details -->
+                                                                <div class="d-flex gap-3" style="margin-left: 10px;">
+                                                                    <!-- Vertical Line -->
+                                                                    <div class="vertical-line" style="background: #8E8E8E; width: 1px; position: absolute; left: 10px; height:100px;"></div>
+
+                                                                    <!-- Activity Content -->
+                                                                    <div style="margin-left: 10px;">
+                                                                        <!-- Activity Message -->
+                                                                        <div class="activity-message mx-3" style="position: relative; bottom: 30px;">
+                                                                            <?= htmlspecialchars($activity['message']) ?>
+                                                                        </div>
 
 
-                                                    foreach ($recentActivities as $activity) {
-                                                        echo "
-                                            <div class='d-flex gap-3'>
-                                            
-                                             <div class='border rounded-circle mt-3 ' style='background:#122867; width:9px; height:9px'>
-                                                
-                                        </div> 
-                                       <div style='width:100%;'> {$activity['message']}
-</div>                                                
-                                            
+                                                                        <!-- Action Buttons -->
+                                                                        <div class="d-flex justify-content-center gap-3" style="position: relative;">
+                                                                            <?php if ($activity['surveyId']) : ?>
+                                                                                <a href="<?= Yii::app()->createUrl('responses/browse', ['surveyId' => $activity['surveyId']]) ?>"
+                                                                                    class="btn w-75 btn-primary btn-sm rounded-3 border-0"
+                                                                                    style="background: rgba(43, 0, 255, 0.1); color: #1E1E1E;">
+                                                                                    View Response
+                                                                                </a>
+                                                                            <?php endif; ?>
 
-                                            </div>
-                                            <div class='d-flex justify-content-center' >
-                                             <button class='btn w-75 btn-primary btn-sm  border-0' style='background:rgba(43, 0, 255, 0.1); color:#1E1E1E'; >View </button>
-           
-                                           </div>
-                                          
-                                        ";
-                                                    }
-                                                    ?>
+                                                                            <?php if ($activity['type'] === 'draft_edited') : ?>
+                                                                                <a href="<?= Yii::app()->createUrl('surveyAdministration/view/', ['surveyid' => $activity['surveyId']]) ?>"
+                                                                                    class="btn w-75 btn-primary btn-sm rounded-3 border-0"
+                                                                                    style="background: rgba(43, 0, 255, 0.1); color: #1E1E1E;">
+                                                                                    Publish Survey
+                                                                                </a>
+                                                                            <?php endif; ?>
+
+                                                                            <?php if ($activity['type'] === 'survey_response') : ?>
+                                                                                <a class="btn w-75 btn-primary btn-sm rounded-3 border-0"
+                                                                                    href="<?= Yii::app()->createUrl('admin/statistics/sa/index/', ['surveyId' => $activity['surveyId']]) ?>"
+                                                                                    style="background: rgba(43, 0, 255, 0.1); color: #1E1E1E;">
+                                                                                    Analyse Results
+                                                                                </a>
+                                                                            <?php endif; ?>
+
+                                                                            <?php if ($activity['type'] === 'user_creation') : ?>
+                                                                                <a class="btn w-75 btn-primary btn-sm rounded-3 border-0"
+                                                                                    href="<?= Yii::app()->createUrl('userManagement/index') ?>"
+                                                                                    style="background: rgba(43, 0, 255, 0.1); color: #1E1E1E;">
+                                                                                    View
+                                                                                </a>
+                                                                            <?php endif; ?>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        <?php endforeach; ?>
+                                                    <?php endforeach; ?>
+
                                                 </div>
-
-
-
-                                                <!-- </li> -->
                                             </ul>
+
                                         </div>
                                     </div>
                                 </div>
