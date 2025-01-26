@@ -325,7 +325,7 @@ class DashboardController extends LSBaseController
     public function getRecentActivitySummary()
     {
         $recentActivities = [];
-    
+
         // Fetch active surveys and their recent responses
         $surveyIds = Yii::app()->db->createCommand("
             SELECT sid, surveyls_title
@@ -334,18 +334,18 @@ class DashboardController extends LSBaseController
               ON surveys.sid = surveys_languagesettings.surveyls_survey_id
             WHERE active = 'Y'
         ")->queryAll();
-    
+
         foreach ($surveyIds as $survey) {
             $surveyId = $survey['sid'];
             $surveyTitle = $survey['surveyls_title'];
-    
+
             // Count new responses
             $responseCount = Yii::app()->db->createCommand("
                 SELECT COUNT(*) AS response_count 
                 FROM {{survey_$surveyId}}
                 WHERE submitdate IS NOT NULL
             ")->queryScalar();
-    
+
             $recentActivities[] = [
                 'type' => 'survey_response',
                 'message' => "Survey \"$surveyTitle\" received $responseCount new responses.",
@@ -353,26 +353,36 @@ class DashboardController extends LSBaseController
                 'date' => date('Y-m-d'),
             ];
         }
-    
+
         // Fetch recently edited drafts
         $editedDrafts = Yii::app()->db->createCommand("
-            SELECT sid, surveyls_title, last_edited
-            FROM surveys
-            JOIN surveys_languagesettings 
-              ON surveys.sid = surveys_languagesettings.surveyls_survey_id
-            WHERE active = 'N'
-            LIMIT 5
-        ")->queryAll();
-    
+        SELECT surveys.sid, surveyls_title, 
+               GREATEST(
+                   IFNULL(surveys.last_edited, '1970-01-01'), 
+                   IFNULL(MAX(questions.last_modified), '1970-01-01')
+               ) AS last_edited
+        FROM surveys
+        JOIN surveys_languagesettings 
+          ON surveys.sid = surveys_languagesettings.surveyls_survey_id
+        LEFT JOIN questions 
+          ON surveys.sid = questions.sid
+        WHERE surveys.active = 'N'
+        GROUP BY surveys.sid, surveyls_title
+        ORDER BY last_edited DESC
+        LIMIT 5
+    ")->queryAll();
+
         foreach ($editedDrafts as $draft) {
             $recentActivities[] = [
                 'type' => 'draft_edited',
                 'message' => "Survey \"{$draft['surveyls_title']}\" was edited.",
                 'surveyId' => $draft['sid'],
-                'date' => $draft['last_edited'], 
+                'date' => $draft['last_edited'],
             ];
         }
-    
+
+
+
         // Fetch new user creation actions
         $newUsers = Yii::app()->db->createCommand("
             SELECT users_name, created
@@ -380,7 +390,7 @@ class DashboardController extends LSBaseController
             ORDER BY created DESC
             LIMIT 5
         ")->queryAll();
-    
+
         foreach ($newUsers as $user) {
             $recentActivities[] = [
                 'type' => 'user_creation',
@@ -388,17 +398,17 @@ class DashboardController extends LSBaseController
                 'date' => $user['created'], // Use the created date
             ];
         }
-    
+
         // Sort activities by date (most recent first)
         usort($recentActivities, function ($a, $b) {
             return strtotime($b['date']) - strtotime($a['date']);
         });
-    
+
         // Group activities by Today, Yesterday, and other dates
         $groupedActivities = [];
         $today = date('Y-m-d');
         $yesterday = date('Y-m-d', strtotime('-1 day'));
-    
+
         foreach ($recentActivities as $activity) {
             $activityDate = date('Y-m-d', strtotime($activity['date']));
             if ($activityDate === $today) {
@@ -409,8 +419,38 @@ class DashboardController extends LSBaseController
                 $groupedActivities[date('F d, Y', strtotime($activity['date']))][] = $activity;
             }
         }
-    
+
         return $groupedActivities;
     }
-    
 }
+
+
+// CREATE TRIGGER update_questions_last_modified
+// AFTER UPDATE ON question_l10ns
+// FOR EACH ROW
+// BEGIN
+//   UPDATE questions
+//   SET last_modified = NOW()
+//   WHERE qid = NEW.qid;
+// END;
+
+
+// 
+// CREATE TRIGGER insert_questions_last_modified
+// AFTER INSERT ON question_l10ns
+// FOR EACH ROW
+// BEGIN
+//   UPDATE questions
+//   SET last_modified = NOW()
+//   WHERE qid = NEW.qid;
+// END;
+
+//
+// CREATE TRIGGER update_surveys_last_modified
+// AFTER UPDATE ON questions
+// FOR EACH ROW
+// BEGIN
+//   UPDATE surveys
+//   SET last_edited = NOW()
+//   WHERE sid = NEW.sid;
+// END;
