@@ -527,7 +527,7 @@ $recentActivities = $this->getRecentActivitySummary();
                                                     <i class="ri ri-record-circle-line align-center align-middle" style="color:#6EDEEF; font-size:30px"></i>
                                                 </div>
 
-                                                <h4 class="mt-1 fs-6">Active Surveys</h4>
+                                                <h4 class="mt-1 fs-6 ">Active Surveys</h4>
                                             </div>
 
 
@@ -579,8 +579,8 @@ $recentActivities = $this->getRecentActivitySummary();
                                         <div class="card mb-4">
                                             <div class="card-body">
                                                 <div class="card card-body">
-                                                    <div class="d-flex  justify-content-between mb-5">
-                                                        <h5 style="font-size:small">Response Trends</h5>
+                                                    <div class="d-flex align-items-center  justify-content-between mb-5">
+                                                        <h4 class=" fs-6">Response Trends</h4>
 
                                                         <div class="d-flex justify-content-between align-items-center">
                                                             <select id="surveyDropdown" class="form-select rounded-3 form-select-sm w-auto">
@@ -619,7 +619,7 @@ $recentActivities = $this->getRecentActivitySummary();
 
                                     <div class="col-lg-3 col-md-12  mb-4 mb-lg-0">
                                         <div class="card p-3 ">
-                                            <h5 class="card-title">Recent Activity</h5>
+                                            <h4 class="fs-6">Recent Activity</h4>
                                             <ul class="list-group list-group-flush" style="height: 50vh; overflow-x: scroll;">
                                                 <div>
                                                     <?php foreach ($recentActivities as $heading => $activities): ?>
