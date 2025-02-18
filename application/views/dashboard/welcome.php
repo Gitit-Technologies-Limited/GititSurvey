@@ -33,6 +33,11 @@ $surveyCounts = $this->getSurveyCounts();
 $activeSurveys = $this->getFirstFiveActiveSurveysWithResponses();
 $surveyList = $this->getSurveyList();
 $recentActivities = $this->getRecentActivitySummary();
+$responseTrend = $this->getSurveyResponseTrend();
+
+
+
+
 ?>
 
 <style>
@@ -419,9 +424,9 @@ $recentActivities = $this->getRecentActivitySummary();
                         <li class="nav-item" role="presentation">
                             <button class="nav-link" id="surveys-tab" data-bs-toggle="tab" data-bs-target="#surveys" type="button" role="tab" aria-controls="surveys" aria-selected="false">Surveys(<?= $surveyCounts['all'] ?>)</button>
                         </li>
-                        <!-- <li class="nav-item" role="presentation">
-            <button class="nav-link" id="reports-tab" data-bs-toggle="tab" data-bs-target="#reports" type="button" role="tab" aria-controls="reports" aria-selected="false">Reports & Analytics</button>
-        </li> -->
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="reports-tab" data-bs-toggle="tab" data-bs-target="#reports" type="button" role="tab" aria-controls="reports" aria-selected="false">Reports & Analytics</button>
+                        </li>
                     </ul>
                     <!-- Tab Content -->
                     <div class="tab-content bg-transparent p-0" id="customTabsContent">
@@ -538,6 +543,9 @@ $recentActivities = $this->getRecentActivitySummary();
                                                         No active surveys
                                                     </li>
                                                 <?php else: ?>
+
+
+
                                                     <?php foreach ($activeSurveys as $activeSurvey): ?>
                                                         <li class="mt-4 d-flex justify-content-between align-items-center border-bottom py-2">
                                                             <div class="d-flex gap-2 ">
@@ -583,21 +591,18 @@ $recentActivities = $this->getRecentActivitySummary();
                                                         <h4 class=" fs-6">Response Trends</h4>
 
                                                         <div class="d-flex justify-content-between align-items-center">
-                                                            <select id="surveyDropdown" class="form-select rounded-3 form-select-sm w-auto">
-                                                                <option value="" disabled>Select Survey</option>
-                                                                <?php
-
-                                                                foreach ($surveyList as $survey) {
-                                                                    echo "<option value='{$survey['sid']}'>{$survey['surveyls_title']}</option>";
-                                                                }
-                                                                ?>
+                                                            <select id="responseTrendDropdown" class="form-select w-auto">
+                                                                <option value="daily">Daily</option>
+                                                                <option value="weekly">Weekly</option>
+                                                                <option value="yearly">Yearly</option>
                                                             </select>
+
                                                         </div>
                                                     </div>
 
 
                                                     <div class="chart-container">
-                                                        <canvas id="responseChart"></canvas>
+                                                        <canvas id="responseTrendChart"></canvas>
                                                     </div>
                                                 </div>
 
@@ -723,13 +728,34 @@ $recentActivities = $this->getRecentActivitySummary();
 
 
                             <div class="row">
-                                <div class="col-7">Response Trends</div>
+
                                 <div class="container-fluid">
                                     <div class="row my-2">
                                         <div class="col-md-7">
                                             <div class="card card-body">
-                                                <h4 class="mb-4 fs-6">Response Trends</h4>
+                                                <!-- <h4 class="mb-4 fs-6">Response Trends</h4> -->
 
+
+                                                <div class=" card-body">
+                                                    <div class="d-flex align-items-center  justify-content-between mb-5">
+                                                        <h4 class=" fs-6">Response Trends</h4>
+
+                                                        <div class="d-flex justify-content-between align-items-center">
+                                                            <select id="reportResponseTrendDropdown" class="form-select w-auto">
+                                                                <option value="daily">Daily</option>
+                                                                <option value="weekly">Weekly</option>
+                                                                <option value="yearly">Yearly</option>
+                                                            </select>
+
+                                                        </div>
+                                                    </div>
+
+
+                                                    <div class="chart-container">
+                                                        <canvas id="reportResponseTrendChart"></canvas>
+                                                    </div>
+
+                                                </div>
 
 
                                             </div>
@@ -741,23 +767,12 @@ $recentActivities = $this->getRecentActivitySummary();
 
                                                 </div>
                                                 <h4 class="mt-1 fs-6">Average Response Time Across Surveys</h4>
-                                                <ul class="list-group">
-                                                    <?php if (empty($activeSurveys)): ?>
-                                                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                                                            No active surveys
-                                                        </li>
-                                                    <?php else: ?>
-                                                        <?php foreach ($activeSurveys as $activeSurvey): ?>
-                                                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                                                <?php echo CHtml::encode($activeSurvey['survey_title']); ?>
-                                                                <span class="badge bg-primary rounded-pill">
-                                                                    <?php echo CHtml::encode($activeSurvey['response_count']); ?> Responses
 
-                                                                </span>
-                                                            </li>
-                                                        <?php endforeach; ?>
-                                                    <?php endif; ?>
-                                                </ul>
+
+
+                                                <div class="chart-container">
+                                                    <canvas id="responseTimeChart"></canvas>
+                                                </div>
 
                                             </div>
 
@@ -772,21 +787,18 @@ $recentActivities = $this->getRecentActivitySummary();
                                                         <h5 style="font-size:small">Responses Across Surveys</h5>
 
                                                         <div class="d-flex justify-content-between align-items-center">
-                                                            <select id="surveyDropdown" class="form-select w-auto">
-                                                                <option value="" disabled>Select Survey</option>
-                                                                <?php
-
-                                                                foreach ($surveyList as $survey) {
-                                                                    echo "<option value='{$survey['sid']}'>{$survey['surveyls_title']}</option>";
-                                                                }
-                                                                ?>
+                                                            <select id="responseAcrossSurveyDropdown" class="form-select w-auto">
+                                                                <option value="daily">Daily</option>
+                                                                <option value="weekly">Weekly</option>
+                                                                <option value="yearly">Yearly</option>
                                                             </select>
+
                                                         </div>
                                                     </div>
 
 
                                                     <div class="chart-container">
-                                                        <canvas id="responseChart"></canvas>
+                                                        <canvas id="responsesAcrossSurveysChart"></canvas>
                                                     </div>
                                                 </div>
                                             </div>
@@ -806,21 +818,19 @@ $recentActivities = $this->getRecentActivitySummary();
                                                     <div class="d-flex gap-4 mb-5">
                                                         <h5 style="font-size:small">Distribution Across Surveys</h5>
 
-                                                        <div class="d-flex justify-content-between align-items-center">
-                                                            <select id="surveyDropdown" class="form-select w-auto">
-                                                                <option value="" disabled>Select Survey</option>
-                                                                <?php
-                                                                foreach ($surveyList as $survey) {
-                                                                    echo "<option value='{$survey['sid']}'>{$survey['surveyls_title']}</option>";
-                                                                }
-                                                                ?>
+                                                        <!-- <div class="d-flex justify-content-between align-items-center">
+                                                            <select id="timePeriodDropdown" class="form-select w-auto">
+                                                                <option value="daily">Daily</option>
+                                                                <option value="weekly">Weekly</option>
+                                                                <option value="yearly">Yearly</option>
                                                             </select>
-                                                        </div>
+
+                                                        </div> -->
                                                     </div>
 
 
-                                                    <div class="chart-container">
-                                                        <canvas id="responseChart"></canvas>
+                                                    <div class="chart-container" style="display: flex; justify-content: center;">
+                                                        <canvas id="distributionAcrossSurveysChart"></canvas>
                                                     </div>
                                                 </div>
                                             </div>
@@ -864,85 +874,560 @@ $recentActivities = $this->getRecentActivitySummary();
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     window.onload = function() {
-        // Fetch default survey from PHP variable
-        let defaultSurvey = <?= json_encode($surveyList) ?>;
         const csrfTokenName = '<?= Yii::app()->request->csrfTokenName ?>';
         const csrfToken = '<?= Yii::app()->request->csrfToken ?>';
-        let selectedSurveyId = defaultSurvey.length > 0 ? defaultSurvey[0].sid : null; // Default to the first survey ID
 
-        console.log(defaultSurvey, "default");
-        const url = '<?= Yii::app()->createUrl('searchBoxWidget/getSurveyResponseTrends') ?>';
+        let selectedPeriod = 'daily'; // Default period
 
-        // Populate dropdown on page load
-        const surveyDropdown = document.getElementById('surveyDropdown');
-        if (surveyDropdown) {
+        function handleResponsesAcrossSurveys() {
 
-            surveyDropdown.innerHTML = ''; // Clear existing options
-            defaultSurvey.forEach(survey => {
-                const option = document.createElement('option');
-                option.value = survey.sid;
-                option.textContent = survey.surveyls_title;
-                surveyDropdown.appendChild(option);
-            });
 
-            // Set the default selected survey
-            surveyDropdown.value = selectedSurveyId;
+            const url = '<?= Yii::app()->createUrl('searchBoxWidget/getResponsesAcrossSurveys') ?>';
+            const dropdown = document.getElementById('responseAcrossSurveyDropdown');
 
-            // Fetch and display data for the default survey
-            fetchSurveyData(selectedSurveyId);
-        }
-
-        surveyDropdown.addEventListener('change', function() {
-            selectedSurveyId = this.value;
-            fetchSurveyData(selectedSurveyId);
-        });
-
-        // fetch and update the chart
-        function fetchSurveyData(surveyId) {
-            fetch(`${url}?surveyid=${surveyId}`, {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        [csrfTokenName]: csrfToken
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    console.log(data);
-                    const labels = data.map(item => item.response_date);
-                    const responseData = data.map(item => item.response_count);
-
-                    responseChart.data.labels = labels;
-                    responseChart.data.datasets[0].data = responseData;
-                    responseChart.update();
-                })
-                .catch(error => {
-                    console.error('Error fetching survey response trends:', error);
+            if (dropdown) {
+                dropdown.value = selectedPeriod;
+                dropdown.addEventListener('change', function() {
+                    selectedPeriod = this.value;
+                    fetchResponsesAcrossSurveysData(selectedPeriod);
                 });
-        }
 
-        // Chart.js setup
-        const ctx = document.getElementById('responseChart').getContext('2d');
-        const responseChart = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
-                datasets: [{
-                    label: 'Responses',
-                    data: [0, 0, 0, 0, 0, 0, 0], // Initial data
-                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                    borderColor: 'rgba(75, 192, 192, 1)',
-                    borderWidth: 1,
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: {
-                        display: false
+                fetchResponsesAcrossSurveysData(selectedPeriod);
+            }
+
+            function fetchResponsesAcrossSurveysData(period) {
+                fetch(`${url}?period=${period}`, {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            [csrfTokenName]: csrfToken
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (!data || !Array.isArray(data)) {
+
+                            return;
+                        }
+
+
+
+                        const labels = data.map(item => item.survey);
+                        const responseData = data.map(item => item.responses);
+
+                        responsesAcrossSurveysChart.data.labels = labels;
+                        responsesAcrossSurveysChart.data.datasets[0].data = responseData;
+                        responsesAcrossSurveysChart.update();
+                    })
+                    .catch(error => {
+                        console.error('Error fetching survey response data:', error);
+                    });
+            }
+
+            const ctx = document.getElementById('responsesAcrossSurveysChart').getContext('2d');
+            var responsesAcrossSurveysChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Responses',
+                        data: [],
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 1,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
                     }
                 }
+            });
+        }
+
+        function handleDistributionAcrossSurveys() {
+
+
+            const url = '<?= Yii::app()->createUrl('searchBoxWidget/getDistributionAcrossSurveys') ?>';
+
+            function fetchDistributionAcrossSurveysData() {
+                fetch(`${url}`, {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            [csrfTokenName]: csrfToken
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (!data || typeof data !== 'object') {
+                            console.error("Invalid distribution data format:", data);
+                            return;
+                        }
+
+
+
+                        const labels = Object.keys(data);
+                        const distributionData = Object.values(data);
+
+                        distributionAcrossSurveysChart.data.labels = labels;
+                        distributionAcrossSurveysChart.data.datasets[0].data = distributionData;
+                        distributionAcrossSurveysChart.update();
+                    })
+                    .catch(error => {
+                        console.error('Error fetching survey distribution data:', error);
+                    });
             }
-        });
+
+            const ctx = document.getElementById('distributionAcrossSurveysChart').getContext('2d');
+            var distributionAcrossSurveysChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Survey Distribution',
+                        data: [],
+                        backgroundColor: ['rgba(75, 192, 192, 0.2)', 'rgba(153, 102, 255, 0.2)', 'rgba(255, 159, 64, 0.2)'],
+                        borderColor: ['rgba(75, 192, 192, 1)', 'rgba(153, 102, 255, 1)', 'rgba(255, 159, 64, 1)'],
+                        borderWidth: 1,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(tooltipItem) {
+                                    return `${tooltipItem.label}: ${tooltipItem.raw}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            fetchDistributionAcrossSurveysData();
+        }
+
+        function handleResponseTrends() {
+
+
+            const url = '<?= Yii::app()->createUrl("searchBoxWidget/getSurveyResponseTrend") ?>';
+            const dropdown = document.getElementById('responseTrendDropdown');
+
+            let selectedPeriod = dropdown ? dropdown.value : 'daily';
+
+            if (dropdown) {
+                dropdown.addEventListener('change', function() {
+                    selectedPeriod = this.value;
+                    fetchResponseTrendsData(selectedPeriod);
+                });
+            }
+
+            function fetchResponseTrendsData(period) {
+                fetch(`${url}?period=${period}`, {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            [csrfTokenName]: csrfToken
+                        }
+                    })
+                    .then(response => response.text())
+                    .then(text => {
+                        try {
+
+                            const cleanText = text.trim().replace(/null$/, "");
+                            const jsonData = JSON.parse(cleanText);
+
+                            if (!Array.isArray(jsonData)) {
+                                console.warn("Invalid JSON format:", jsonData);
+                                return;
+                            }
+
+                            if (jsonData.length === 0) {
+                                console.warn("No data received from API.");
+                                return;
+                            }
+
+                            updateResponseTrendChart(jsonData, period);
+                        } catch (error) {
+                            console.error("JSON Parse Error:", error, "Response Text:", text);
+                        }
+                    })
+                    .catch(error => console.error('Error fetching response trends:', error));
+            }
+
+            function updateResponseTrendChart(data, period) {
+
+
+                let labels = [];
+                let datasets = [];
+                let surveyDataMap = {};
+
+
+                const weekDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+                // Process API data
+                data.forEach(survey => {
+                    const surveyId = `Survey ${survey.survey_id}`;
+                    surveyDataMap[surveyId] = {};
+
+                    survey.data.forEach(res => {
+                        let label;
+                        if (period === 'yearly') {
+                            label = res.response_year;
+                        } else if (period === 'weekly') {
+                            label = `Week ${res.response_week}`;
+                        } else if (period === 'daily') {
+                            label = res.response_day;
+                        } else {
+                            label = res.response_date;
+                        }
+                        surveyDataMap[surveyId][label] = res.total_responses;
+                    });
+                });
+
+                labels = period === 'daily' ? weekDays : [...new Set(Object.values(surveyDataMap).flatMap(data => Object.keys(data)))].sort();
+
+                if (labels.length === 0) {
+                    console.warn("No labels generated for chart.");
+                    return;
+                }
+
+                Object.keys(surveyDataMap).forEach((surveyId, index) => {
+                    let responses = labels.map(label => surveyDataMap[surveyId][label] || 0); // **Fill missing days with 0**
+
+                    datasets.push({
+                        label: surveyId,
+                        data: responses,
+                        backgroundColor: `rgba(${75 + index * 40}, ${192 - index * 30}, 192, 0.5)`,
+                        borderColor: `rgba(${75 + index * 40}, ${192 - index * 30}, 192, 1)`,
+                        borderWidth: 1
+                    });
+                });
+
+                responseTrendChart.data.labels = labels;
+                responseTrendChart.data.datasets = datasets;
+                responseTrendChart.update();
+            }
+
+            // Initialize the chart
+            const ctx = document.getElementById('responseTrendChart').getContext('2d');
+            var responseTrendChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: [],
+                    datasets: []
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+
+            // Fetch initial data
+            fetchResponseTrendsData(selectedPeriod);
+        }
+
+
+
+
+
+
+        function handleReportResponseTrends() {
+
+
+            const url = '<?= Yii::app()->createUrl("searchBoxWidget/getSurveyResponseTrend") ?>';
+            const dropdown = document.getElementById('reportResponseTrendDropdown');
+
+            let selectedPeriod = dropdown ? dropdown.value : 'daily';
+
+            if (dropdown) {
+                dropdown.addEventListener('change', function() {
+                    selectedPeriod = this.value;
+                    fetchResponseTrendsData(selectedPeriod);
+                });
+            }
+
+            function fetchResponseTrendsData(period) {
+                fetch(`${url}?period=${period}`, {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            [csrfTokenName]: csrfToken
+                        }
+                    })
+                    .then(response => response.text())
+                    .then(text => {
+                        try {
+
+
+                            const cleanText = text.trim().replace(/null$/, ""); // Fix trailing null issues
+                            const jsonData = JSON.parse(cleanText);
+
+                            if (!Array.isArray(jsonData)) {
+                                console.warn("Invalid JSON format:", jsonData);
+                                return;
+                            }
+
+                            if (jsonData.length === 0) {
+                                console.warn("No data received from API.");
+                                return;
+                            }
+
+                            updateResponseTrendChart(jsonData, period);
+                        } catch (error) {
+                            console.error("JSON Parse Error:", error, "Response Text:", text);
+                        }
+                    })
+                    .catch(error => console.error('Error fetching response trends:', error));
+            }
+
+            function updateResponseTrendChart(data, period) {
+
+
+                let labels = [];
+                let datasets = [];
+                let surveyDataMap = {};
+
+
+                const weekDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+                // Process API data
+                data.forEach(survey => {
+                    const surveyId = `Survey ${survey.survey_id}`;
+                    surveyDataMap[surveyId] = {};
+
+                    survey.data.forEach(res => {
+                        let label;
+                        if (period === 'yearly') {
+                            label = res.response_year;
+                        } else if (period === 'weekly') {
+                            label = `Week ${res.response_week}`;
+                        } else if (period === 'daily') {
+                            label = res.response_day; // Should be 'Monday', 'Tuesday', etc.
+                        } else {
+                            label = res.response_date;
+                        }
+                        surveyDataMap[surveyId][label] = res.total_responses;
+                    });
+                });
+
+
+                labels = period === 'daily' ? weekDays : [...new Set(Object.values(surveyDataMap).flatMap(data => Object.keys(data)))].sort();
+
+                if (labels.length === 0) {
+                    console.warn("No labels generated for chart.");
+                    return;
+                }
+
+                Object.keys(surveyDataMap).forEach((surveyId, index) => {
+                    let responses = labels.map(label => surveyDataMap[surveyId][label] || 0); // **Fill missing days with 0**
+
+                    datasets.push({
+                        label: surveyId,
+                        data: responses,
+                        backgroundColor: `rgba(${75 + index * 40}, ${192 - index * 30}, 192, 0.5)`,
+                        borderColor: `rgba(${75 + index * 40}, ${192 - index * 30}, 192, 1)`,
+                        borderWidth: 1
+                    });
+                });
+
+                responseTrendChart.data.labels = labels;
+                responseTrendChart.data.datasets = datasets;
+                responseTrendChart.update();
+            }
+
+            // Initialize the chart
+            const ctx = document.getElementById('reportResponseTrendChart').getContext('2d');
+            var responseTrendChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: [],
+                    datasets: []
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+
+            // Fetch initial data
+            fetchResponseTrendsData(selectedPeriod);
+        }
+
+
+        function fetchAllSurveyResponseTimes() {
+            fetch("<?= Yii::app()->createUrl('searchBoxWidget/getOverallAverageResponseTime') ?>")
+                .then(response => response.json())
+                .then(data => {
+                    if (data.surveys && Array.isArray(data.surveys) && data.surveys.length > 0) {
+                        let surveyIds = data.surveys.map(survey => `Survey ${survey.survey_id}`);
+                        let responseTimes = data.surveys.map(survey => survey.average_response_time);
+
+                        renderChart(surveyIds, responseTimes);
+                    } else {
+                        console.error("No data received or API error:", data);
+                    }
+                })
+                .catch(error => console.error('API Fetch Error:', error));
+        }
+
+        // Function to render chart using Chart.js
+        function renderChart(labels, data) {
+            const ctx = document.getElementById('surveyChart').getContext('2d');
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Average Response Time (seconds)',
+                        data: data,
+                        backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+
+
+        function renderChart(labels, data) {
+            let ctx = document.getElementById('responseTimeChart').getContext('2d');
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Average Response Time (seconds)',
+                        data: data,
+                        backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Time (seconds)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Survey ID'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+
+        fetchAllSurveyResponseTimes();
+        handleResponsesAcrossSurveys();
+        handleResponseTrends();
+        handleReportResponseTrends();
+        handleDistributionAcrossSurveys();
     };
+</script>
+
+
+<script>
+    async function fetchSurveyData() {
+        try {
+
+            const url = '<?= Yii::app()->createUrl('searchBoxWidget/getSurveyStats') ?>';
+
+            const response = await fetch(url);
+            const data = await response.json();
+
+            const surveyIds = data.map(item => `Survey ${item.survey_id}`);
+            const totalResponses = data.map(item => item.total_responses);
+            const totalCompletionTime = data.map(item => item.total_completion_time);
+            const avgResponseTime = data.map(item => item.avg_response_time);
+
+            const surveyStatsCtx = document.getElementById('surveyStats').getContext('2d');
+            new Chart(surveyStatsCtx, {
+                type: 'bar',
+                data: {
+                    labels: surveyIds,
+                    datasets: [{
+                            label: 'Total Responses',
+                            data: totalResponses,
+                            backgroundColor: 'rgba(255, 159, 64, 0.8)',
+                            borderColor: 'rgba(255, 159, 64, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Total Completion Time (Min)',
+                            data: totalCompletionTime,
+                            backgroundColor: 'rgba(54, 162, 235, 0.8)',
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Average Response Time (Min)',
+                            data: avgResponseTime,
+                            backgroundColor: 'rgba(75, 192, 192, 0.8)',
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+
+        } catch (error) {
+            console.error("Error fetching survey data:", error);
+        }
+    }
+
+    fetchSurveyData();
 </script>
