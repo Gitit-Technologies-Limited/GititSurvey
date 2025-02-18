@@ -175,6 +175,12 @@ class Save
                 }
             }
 
+            // Set the submitdate when the submit button is clicked
+            if (isset($_POST['savesubmit']) && $_POST['savesubmit'] == 'submit') {
+                $submitdate = dateShift(date("Y-m-d H:i:s"), "Y-m-d H:i:s", $timeadjust);
+                SurveyDynamic::model($thissurvey['sid'])->updateByPk($_SESSION['survey_' . $surveyid]['srid'], array('submitdate' => $submitdate));
+            }
+
             //CREATE ENTRY INTO "saved_control"
             $saved_control                 = new SavedControl();
             $saved_control->sid            = $surveyid;
@@ -263,10 +269,10 @@ class Save
         }
         $passedTime = str_replace(',', '.', round(microtime(true) - $_POST['start_time'], 2));
         if (!isset($setField)) {
-//we show the whole survey on one page - we don't have to save time for group/question
+            //we show the whole survey on one page - we don't have to save time for group/question
             $query = "UPDATE " . $survey->timingsTableName . " SET "
-            . "interviewtime = (CASE WHEN interviewtime IS NULL THEN 0 ELSE interviewtime END) + " . $passedTime
-            . " WHERE id = " . $_SESSION['survey_' . $thissurvey['sid']]['srid'];
+                . "interviewtime = (CASE WHEN interviewtime IS NULL THEN 0 ELSE interviewtime END) + " . $passedTime
+                . " WHERE id = " . $_SESSION['survey_' . $thissurvey['sid']]['srid'];
         } else {
             $aColumnNames = SurveyTimingDynamic::model($thissurvey['sid'])->getTableSchema()->columnNames;
             $setField .= "time";
@@ -275,9 +281,9 @@ class Save
             }
             $setField = Yii::app()->db->quoteColumnName($setField);
             $query = "UPDATE " . $survey->timingsTableName . " SET "
-            . "interviewtime =  (CASE WHEN interviewtime IS NULL THEN 0 ELSE interviewtime END) + " . $passedTime . ","
-            . $setField . " =  (CASE WHEN $setField IS NULL THEN 0 ELSE $setField END) + " . $passedTime
-            . " WHERE id = " . $_SESSION['survey_' . $thissurvey['sid']]['srid'];
+                . "interviewtime =  (CASE WHEN interviewtime IS NULL THEN 0 ELSE interviewtime END) + " . $passedTime . ","
+                . $setField . " =  (CASE WHEN $setField IS NULL THEN 0 ELSE $setField END) + " . $passedTime
+                . " WHERE id = " . $_SESSION['survey_' . $thissurvey['sid']]['srid'];
         }
         Yii::app()->db->createCommand($query)->execute();
     }
