@@ -13,13 +13,13 @@ class SearchBoxWidgetController extends LSBaseController
     public function actionGetSurveyResponseTrend()
     {
         // Fetch the surveyid from GET parameters
-        $interval = Yii::app()->request->getParam('period', null); 
+        $interval = Yii::app()->request->getParam('period', null);
         Yii::log('Survey ID in widget: ' . $interval, 'info');
 
         if ($interval) {
-           
+
             $widget = new SearchBoxWidget();
-            $data = $widget->getResponseTrends($interval); 
+            $data = $widget->getResponseTrends($interval);
             header('Content-Type: application/json');
             echo json_encode($data, JSON_PRETTY_PRINT);
             Yii::app()->end();
@@ -75,41 +75,58 @@ class SearchBoxWidgetController extends LSBaseController
         Yii::app()->end();
     }
 
-    // public function actionGetAverageResponseTime()
-    // {
-    //     $widget = new SearchBoxWidget();
-    //     $surveyData = $widget->getOverallAverageResponseTime();
+    public function actionGetAverageResponseTime()
+    {
+        // Get all survey IDs
+        $sql = "SELECT sid FROM {{surveys}}";
+        $surveys = Yii::app()->db->createCommand($sql)->queryAll();
 
-    //     if (!$surveyData || empty($surveyData)) {
-    //         echo json_encode(['error' => 'No response times available']);
-    //         Yii::app()->end();
-    //     }
+        $totalTime = 0;
+        $totalResponses = 0;
+        $surveyData = [];
 
-    //     $allSurveyStats = [];
+        foreach ($surveys as $survey) {
+            $surveyId = intval($survey['sid']);
+            $surveyTable = "{{survey_$surveyId}}"; // Use curly brackets to avoid table prefix issues
 
-    //     foreach ($surveyData as $surveyId => $responses) {
-    //         $totalTime = 0;
-    //         $responseCount = count($responses);
+            // Check if the survey table exists
+            $checkTableSql = "SHOW TABLES LIKE :table";
+            $checkCommand = Yii::app()->db->createCommand($checkTableSql);
+            $checkCommand->bindValue(":table", Yii::app()->db->tablePrefix . "survey_" . $surveyId, PDO::PARAM_STR);
 
-    //         foreach ($responses as $response) {
-    //             $startTime = strtotime($response['start_time']);
-    //             $submitTime = strtotime($response['submit_time']);
+            if (!$checkCommand->queryScalar()) {
+                continue; // Skip if table does not exist
+            }
 
-    //             if ($startTime && $submitTime && $submitTime > $startTime) {
-    //                 $totalTime += ($submitTime - $startTime); // Time taken in seconds
-    //             }
-    //         }
+            // Get sum of response times and count of responses
+            $sql = "SELECT SUM(TIMESTAMPDIFF(SECOND, startdate, submitdate)) AS total_time, 
+                           COUNT(*) AS response_count 
+                    FROM $surveyTable 
+                    WHERE submitdate IS NOT NULL AND startdate IS NOT NULL";
 
-    //         $averageTime = $responseCount > 0 ? round($totalTime / $responseCount, 2) : 0;
-    //         $allSurveyStats[] = ['survey_id' => $surveyId, 'average_response_time' => $averageTime];
-    //     }
+            $command = Yii::app()->db->createCommand($sql);
+            $result = $command->queryRow();
 
-    //     echo json_encode($allSurveyStats); // Return JSON array
-    //     Yii::app()->end();
-    // }
+            if ($result && $result['response_count'] > 0) {
+                $averageTime = round($result['total_time'] / $result['response_count'], 2);
+                $totalTime += $result['total_time'];
+                $totalResponses += $result['response_count'];
 
+                // Store per-survey response time
+                $surveyData[] = [
+                    "survey_id" => $surveyId,
+                    "average_response_time" => $averageTime
+                ];
+            }
+        }
 
+        // Compute the overall average
+        $overallAverage = ($totalResponses > 0) ? round($totalTime / $totalResponses, 2) : 0;
 
-
-
+        // Return JSON response
+        echo json_encode([
+            "overall_average_response_time" => $overallAverage,
+            "surveys" => $surveyData
+        ]);
+    }
 }

@@ -353,9 +353,9 @@ class SearchBoxWidget extends CWidget
 
     public function getOverallAverageResponseTime()
     {
+
         $sql = "SELECT sid FROM {{surveys}}";
-        $command = Yii::app()->db->createCommand($sql);
-        $surveys = $command->queryAll();
+        $surveys = Yii::app()->db->createCommand($sql)->queryAll();
 
         $totalTime = 0;
         $totalResponses = 0;
@@ -363,40 +363,41 @@ class SearchBoxWidget extends CWidget
 
         foreach ($surveys as $survey) {
             $surveyId = intval($survey['sid']);
-            $surveyTable = "survey_" . $surveyId;
+            $surveyTable = "{{survey_$surveyId}}"; // Use curly brackets to avoid table prefix issues
 
             // Check if the survey table exists
             $checkTableSql = "SHOW TABLES LIKE :table";
             $checkCommand = Yii::app()->db->createCommand($checkTableSql);
-            $checkCommand->bindValue(":table", $surveyTable, PDO::PARAM_STR);
+            $checkCommand->bindValue(":table", Yii::app()->db->tablePrefix . "survey_" . $surveyId, PDO::PARAM_STR);
 
             if (!$checkCommand->queryScalar()) {
-                continue;
+                continue; // Skip if table does not exist
             }
 
             // Get sum of response times and count of responses
-            $sql = "SELECT SUM(TIMESTAMPDIFF(SECOND, datestamp, submitdate)) AS total_time, 
+            $sql = "SELECT SUM(TIMESTAMPDIFF(SECOND, startdate, submitdate)) AS total_time, 
                            COUNT(*) AS response_count 
                     FROM $surveyTable 
-                    WHERE submitdate IS NOT NULL AND datestamp IS NOT NULL";
+                    WHERE submitdate IS NOT NULL AND startdate IS NOT NULL";
 
             $command = Yii::app()->db->createCommand($sql);
             $result = $command->queryRow();
 
             if ($result && $result['response_count'] > 0) {
+                $averageTime = round($result['total_time'] / $result['response_count'], 2);
                 $totalTime += $result['total_time'];
                 $totalResponses += $result['response_count'];
 
-                // Store survey-specific response times
+                // Store per-survey response time
                 $surveyData[] = [
                     "survey_id" => $surveyId,
-                    "average_response_time" => round($result['total_time'] / $result['response_count'], 2)
+                    "average_response_time" => $averageTime
                 ];
             }
         }
 
         // Compute the overall average
-        $overallAverage = $totalResponses > 0 ? round($totalTime / $totalResponses, 2) : 0;
+        $overallAverage = ($totalResponses > 0) ? round($totalTime / $totalResponses, 2) : 0;
 
         // Return JSON response
         echo json_encode([

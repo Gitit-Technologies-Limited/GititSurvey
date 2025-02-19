@@ -1282,7 +1282,7 @@ $responseTrend = $this->getSurveyResponseTrend();
 
 
         function fetchAllSurveyResponseTimes() {
-            fetch("<?= Yii::app()->createUrl('searchBoxWidget/getOverallAverageResponseTime') ?>")
+            fetch("<?= Yii::app()->createUrl('searchBoxWidget/getAverageResponseTime') ?>")
                 .then(response => response.json())
                 .then(data => {
                     if (data.surveys && Array.isArray(data.surveys) && data.surveys.length > 0) {
