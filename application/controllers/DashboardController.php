@@ -242,6 +242,51 @@ class DashboardController extends LSBaseController
     }
 
 
+    public function getResponseCountInAllSurveys()
+    {
+        // Query to get the first 5 active surveys
+        $activeSurveys = Yii::app()->db->createCommand()
+            ->select(['sid', 'datecreated'])
+            ->from('{{surveys}}')
+            // ->where('active = :active', [':active' => 'Y'])
+            ->queryAll();
+
+        $results = [];
+        foreach ($activeSurveys as $survey) {
+            // Query to get the survey title from the survey_languagesettings table
+            $surveyTitle = Yii::app()->db->createCommand()
+                ->select('surveyls_title')
+                ->from('{{surveys_languagesettings}}')
+                ->where('surveyls_survey_id = :sid AND surveyls_language = :language', [':sid' => $survey['sid'], ':language' => 'en'])
+                ->queryScalar();
+
+            // Construct the response table name for each survey
+            $responseTable = '{{survey_' . $survey['sid'] . '}}';
+
+            try {
+                // Try to get the response count for the survey from its specific response table
+                $responseCount = Yii::app()->db->createCommand()
+                    ->select('COUNT(*)')
+                    ->from($responseTable)
+                    ->queryScalar();
+            } catch (Exception $e) {
+                // In case the table doesn't exist or any error occurs, set response count to 0
+                $responseCount = 0;
+            }
+
+            // Add the survey details to the result
+            $results[] = [
+                'survey_id' => $survey['sid'],
+                'survey_title' => $surveyTitle,
+                'response_count' => $responseCount,
+                'date_created' => $survey['datecreated'],
+            ];
+        }
+
+        return $results;
+    }
+
+
     // public function countAllSurveys()
     // {
     //     $surveysCount = Yii::app()->db->createCommand()
@@ -421,6 +466,214 @@ class DashboardController extends LSBaseController
         }
 
         return $groupedActivities;
+    }
+
+    public function getSurveyResponseTrend($frequency = 'daily')
+    {
+        // Define the date format based on the frequency filter
+        switch ($frequency) {
+            case 'daily':
+                $dateFormat = "DATE(submitdate)";
+                $groupBy = "DATE(submitdate)";
+                $orderBy = "DATE(submitdate)";
+                break;
+            case 'weekly':
+                $dateFormat = "CONCAT(YEAR(submitdate), '-', WEEK(submitdate))";
+                $groupBy = "YEAR(submitdate), WEEK(submitdate)";
+                $orderBy = "YEAR(submitdate), WEEK(submitdate)";
+                break;
+            case 'monthly':
+                $dateFormat = "DATE_FORMAT(submitdate, '%Y-%m')";
+                $groupBy = "YEAR(submitdate), MONTH(submitdate)";
+                $orderBy = "YEAR(submitdate), MONTH(submitdate)";
+                break;
+            default:
+                return "Invalid frequency parameter!";
+        }
+
+        // Fetch all active surveys
+        $surveys = Yii::app()->db->createCommand()
+            ->select(['sid', 'surveyls_title'])
+            ->from('{{surveys}} s')
+            ->join('{{surveys_languagesettings}} sl', 's.sid = sl.surveyls_survey_id')
+            ->where('s.active = :active AND sl.surveyls_language = :language', [
+                ':active' => 'Y',
+                ':language' => 'en'
+            ])
+            ->queryAll();
+
+        $responseTrends = [];
+
+        foreach ($surveys as $survey) {
+            $surveyId = $survey['sid'];
+            $responseTable = "{{survey_$surveyId}}";
+
+            try {
+                $sql = "
+                    SELECT 
+                        $dateFormat AS time_period,
+                        COUNT(*) AS total_responses
+                    FROM $responseTable
+                    WHERE submitdate IS NOT NULL
+                    GROUP BY $groupBy
+                    ORDER BY $orderBy
+                ";
+
+                $command = Yii::app()->db->createCommand($sql);
+                $surveyData = $command->queryAll();
+
+                $responseTrends[] = [
+                    'survey' => $survey['surveyls_title'],
+                    'responses' => $surveyData,
+                ];
+            } catch (Exception $e) {
+                // Skip if the table doesn't exist
+                continue;
+            }
+        }
+
+        return empty($responseTrends) ? "No survey responses found!" : $responseTrends;
+    }
+
+
+
+
+    public function getResponsesAcrossSurveys($period = 'daily')
+    {
+        // Determine the date range for daily, weekly, or monthly
+        switch ($period) {
+            case 'daily':
+                $dateCondition = 'DATE(submitdate) = CURDATE()'; // Today
+                break;
+            case 'weekly':
+                $dateCondition = 'YEARWEEK(submitdate, 1) = YEARWEEK(CURDATE(), 1)'; // Current week
+                break;
+            case 'monthly':
+                $dateCondition = 'MONTH(submitdate) = MONTH(CURDATE()) AND YEAR(submitdate) = YEAR(CURDATE())'; // Current month
+                break;
+            default:
+                $dateCondition = '1=1'; // No filtering if an invalid period is passed
+                break;
+        }
+
+        // Fetch all active surveys
+        $surveys = Yii::app()->db->createCommand()
+            ->select(['sid', 'surveyls_title'])
+            ->from('{{surveys}} s')
+            ->join('{{surveys_languagesettings}} sl', 's.sid = sl.surveyls_survey_id')
+            ->where('s.active = :active AND sl.surveyls_language = :language', [
+                ':active' => 'Y',
+                ':language' => 'en'
+            ])
+            ->queryAll();
+
+        $results = [];
+
+        foreach ($surveys as $survey) {
+            $responseTable = '{{survey_' . $survey['sid'] . '}}';
+
+            try {
+                $responseCount = Yii::app()->db->createCommand()
+                    ->select('COUNT(*)')
+                    ->from($responseTable)
+                    ->where($dateCondition)
+                    ->queryScalar();
+            } catch (Exception $e) {
+                $responseCount = 0; // Handle cases where the response table doesn't exist
+            }
+
+            $results[] = [
+                'survey' => $survey['surveyls_title'],
+                'responses' => $responseCount,
+            ];
+        }
+
+        return $results;
+    }
+
+
+
+    public function getSurveyStatusDistribution()
+    {
+        $active = Yii::app()->db->createCommand()
+            ->select('COUNT(*)')
+            ->from('{{surveys}}')
+            ->where('active = :active', [':active' => 'Y'])
+            ->queryScalar();
+
+        $inactive = Yii::app()->db->createCommand()
+            ->select('COUNT(*)')
+            ->from('{{surveys}}')
+            ->where('active = :active', [':active' => 'N'])
+            ->queryScalar();
+
+        $expired = Yii::app()->db->createCommand()
+            ->select('COUNT(*)')
+            ->from('{{surveys}}')
+            ->where('expires IS NOT NULL AND expires < NOW()')
+            ->queryScalar();
+
+        return [
+            'active' => $active,
+            'inactive' => $inactive,
+            'expired' => $expired,
+        ];
+    }
+
+
+    public function getSurveyStats()
+    {
+        $surveys = Yii::app()->db->createCommand()
+            ->select(['sid'])
+            ->from('{{surveys}}')
+            ->queryAll();
+
+        $responseData = [];
+
+        foreach ($surveys as $survey) {
+            $responseTable = '{{survey_' . $survey['sid'] . '}}';
+
+            try {
+                if (Yii::app()->db->schema->getTable($responseTable, true) !== null) {
+                    $totalResponses = Yii::app()->db->createCommand()
+                        ->select('COUNT(*)')
+                        ->from($responseTable)
+                        ->where('submitdate IS NOT NULL')
+                        ->queryScalar();
+
+                    $totalCompletionTime = Yii::app()->db->createCommand()
+                        ->select('SUM(TIMESTAMPDIFF(MINUTE, startdate, submitdate))')
+                        ->from($responseTable)
+                        ->where('submitdate IS NOT NULL')
+                        ->queryScalar();
+
+                    $avgResponseTime = Yii::app()->db->createCommand()
+                        ->select('AVG(TIMESTAMPDIFF(MINUTE, startdate, submitdate))')
+                        ->from($responseTable)
+                        ->where('submitdate IS NOT NULL')
+                        ->queryScalar();
+                } else {
+                    $totalResponses = 0;
+                    $totalCompletionTime = 0;
+                    $avgResponseTime = 0;
+                }
+            } catch (Exception $e) {
+                Yii::log("Error fetching survey stats for survey {$survey['sid']}: " . $e->getMessage(), 'error');
+                $totalResponses = 0;
+                $totalCompletionTime = 0;
+                $avgResponseTime = 0;
+            }
+
+            $responseData[] = [
+                'survey_id' => $survey['sid'],
+                'total_responses' => (int)$totalResponses,
+                'total_completion_time' => (int)$totalCompletionTime,
+                'avg_response_time' => round($avgResponseTime, 2),
+            ];
+        }
+
+        header('Content-Type: application/json');
+        echo json_encode($responseData);
     }
 }
 
