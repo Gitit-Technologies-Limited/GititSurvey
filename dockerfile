@@ -18,7 +18,6 @@ RUN a2enmod rewrite headers
 
 # Set permissions
 RUN mkdir -p /var/www/html/upload /var/www/html/application/config /var/www/html/tmp \
-    && chown -R www-data:www-data /var/www/html \
     && chmod -R 755 /var/www/html/tmp \
     && chmod -R 755 /var/www/html/upload \
     && chmod -R 755 /var/www/html/application/config
