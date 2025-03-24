@@ -23,6 +23,8 @@ RUN mkdir -p /var/www/html/upload /var/www/html/application/config /var/www/html
     && chmod -R 755 /var/www/html/upload \
     && chmod -R 755 /var/www/html/application/config
 
+RUN chown -R www-data:www-data /var/www
+
 # Expose the web server port
 EXPOSE 80
 
