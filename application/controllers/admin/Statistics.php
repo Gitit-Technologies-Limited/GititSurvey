@@ -815,6 +815,635 @@ class Statistics extends SurveyCommonAction
     }
 
     /**
+     * Get available filter questions for a survey
+     * Returns questions that can be used for filtering statistics
+     */
+    public function getFilterQuestions()
+    {
+        try {
+            $surveyid = Yii::app()->request->getParam('surveyid');
+
+            if (!$surveyid) {
+                header('HTTP/1.0 400 Bad Request');
+                echo json_encode(array('error' => 'Survey ID required'));
+                return;
+            }
+
+            if (!Permission::model()->hasSurveyPermission($surveyid, 'statistics', 'read')) {
+                header('HTTP/1.0 403 Forbidden');
+                echo json_encode(array('error' => 'Permission denied'));
+                return;
+            }
+
+            $filterQuestions = $this->detectFilterQuestions($surveyid);
+
+            header('Content-Type: application/json');
+            echo json_encode($filterQuestions);
+        } catch (Exception $e) {
+            Yii::log('Error in getFilterQuestions: ' . $e->getMessage(), 'error');
+            header('HTTP/1.0 500 Internal Server Error');
+            echo json_encode(array('error' => $e->getMessage(), 'trace' => $e->getTraceAsString()));
+        }
+    }
+
+    /**
+     * Auto-detect questions that can be used as filters
+     */
+    private function detectFilterQuestions($surveyid)
+    {
+        Yii::log('detectFilterQuestions called for survey: ' . $surveyid, 'info');
+
+        // Valid question types for filtering (dropdown, radio, multiple choice)
+        // Using actual type codes instead of constants for compatibility
+        $validTypes = array('L', '!', 'O', 'Y', 'G'); // L=List(Radio), !=Dropdown, O=List with comment, Y=Yes/No, G=Gender
+
+        $questions = Question::model()->findAllByAttributes(array(
+            'sid' => $surveyid,
+            'parent_qid' => 0,
+        ));
+
+        Yii::log('Total questions found: ' . count($questions), 'info');
+
+        // Expanded keywords for better detection
+        $filterKeywords = array(
+            'department', 'dept', 'dpt', 'depart',
+            'semester', 'sem',
+            'location', 'loc', 'site', 'campus',
+            'cohort', 'batch', 'class', 'group',
+            'faculty', 'instructor', 'teacher', 'professor',
+            'branch', 'division', 'unit', 'section',
+            'program', 'programme', 'course',
+            'year', 'level',
+            'gender', 'sex'
+        );
+        $filters = array();
+
+        // Get survey language
+        $oSurvey = Survey::model()->findByPk($surveyid);
+        $language = $oSurvey->language;
+
+        foreach ($questions as $q) {
+            if (!in_array($q->type, $validTypes)) {
+                continue;
+            }
+
+            // Get question text from localized table
+            $questionL10n = QuestionL10n::model()->findByAttributes(array(
+                'qid' => $q->qid,
+                'language' => $language
+            ));
+
+            if (!$questionL10n) {
+                continue;
+            }
+
+            $title = strtolower(strip_tags($questionL10n->question));
+            $code = strtolower($q->title);
+            $score = 0;
+            $matchedKeyword = null;
+
+            // Check question code first (most reliable)
+            foreach ($filterKeywords as $keyword) {
+                if ($code === $keyword || $code === strtoupper($keyword) || strpos($code, $keyword) !== false) {
+                    $score += 20;
+                    $matchedKeyword = $keyword;
+                    Yii::log('Matched by code - Q' . $q->qid . ': ' . $q->title . ' (keyword: ' . $keyword . ')', 'info');
+                    break;
+                }
+            }
+
+            // Check question title
+            if (!$matchedKeyword) {
+                foreach ($filterKeywords as $keyword) {
+                    if (strpos($title, $keyword) !== false) {
+                        // Higher score if keyword is at the start
+                        if (strpos($title, $keyword) === 0 ||
+                            preg_match('/^(your|which|select|choose|what|enter)\s+' . $keyword . '/i', $title)) {
+                            $score += 15;
+                        } else {
+                            $score += 8;
+                        }
+
+                        // Don't penalize rating questions as heavily - they might still be useful filters
+                        if (strpos($title, 'rate') !== false || strpos($title, 'how would you') !== false) {
+                            $score -= 5;
+                        }
+
+                        $matchedKeyword = $keyword;
+                        Yii::log('Matched by title - Q' . $q->qid . ': ' . $title . ' (keyword: ' . $keyword . ', score: ' . $score . ')', 'info');
+                        break;
+                    }
+                }
+            }
+
+            if ($score > 0) {
+                // Get answer options for this question
+                $options = $this->getQuestionOptions($q->qid, $surveyid);
+
+                if (!empty($options)) {
+                    $questionText = $questionL10n ? strip_tags($questionL10n->question) : strip_tags($q->question);
+                    $filters[] = array(
+                        'qid' => $q->qid,
+                        'gid' => $q->gid,
+                        'question' => $questionText,
+                        'code' => $q->title,
+                        'type' => $matchedKeyword,
+                        'fieldName' => $surveyid . 'X' . $q->gid . 'X' . $q->qid,
+                        'options' => $options,
+                        'score' => $score
+                    );
+                    Yii::log('Added filter - Q' . $q->qid . ': ' . $questionText . ' with ' . count($options) . ' options', 'info');
+                } else {
+                    Yii::log('Skipped Q' . $q->qid . ' - no answer options found', 'info');
+                }
+            }
+        }
+
+        // Sort by score (highest first)
+        if (!empty($filters)) {
+            usort($filters, array($this, 'compareFilterScores'));
+        }
+
+        Yii::log('Total filters detected: ' . count($filters), 'info');
+
+        return $filters;
+    }
+
+    /**
+     * Compare filter scores for sorting
+     */
+    private function compareFilterScores($a, $b)
+    {
+        return $b['score'] - $a['score'];
+    }
+
+    /**
+     * Get answer options for a question
+     */
+    private function getQuestionOptions($qid, $surveyid)
+    {
+        $oSurvey = Survey::model()->findByPk($surveyid);
+        $language = $oSurvey->language;
+
+        $answers = Answer::model()->findAllByAttributes(array(
+            'qid' => $qid,
+            'language' => $language
+        ), array('order' => 'sortorder ASC'));
+
+        $options = array();
+        foreach ($answers as $answer) {
+            $options[] = array(
+                'code' => $answer->code,
+                'answer' => strip_tags($answer->answer)
+            );
+        }
+
+        return $options;
+    }
+
+    /**
+     * Filter statistics based on selected criteria
+     */
+    public function filterStatistics()
+    {
+        try {
+            $surveyid = Yii::app()->request->getPost('surveyid');
+            $filtersJson = Yii::app()->request->getPost('filters');
+
+            Yii::log('filterStatistics called - surveyid: ' . $surveyid, 'info');
+            Yii::log('Filters JSON: ' . $filtersJson, 'info');
+
+            // Decode JSON filters
+            $filters = json_decode($filtersJson, true);
+            if ($filters === null && $filtersJson !== null) {
+                // Try as array if JSON decode fails
+                $filters = Yii::app()->request->getPost('filters', array());
+            }
+
+            if (!$surveyid) {
+                header('HTTP/1.0 400 Bad Request');
+                echo json_encode(array('error' => 'Survey ID required'));
+                return;
+            }
+
+            if (!Permission::model()->hasSurveyPermission($surveyid, 'statistics', 'read')) {
+                header('HTTP/1.0 403 Forbidden');
+                echo json_encode(array('error' => 'Permission denied'));
+                return;
+            }
+
+            $oSurvey = Survey::model()->findByPk($surveyid);
+            if (!$oSurvey) {
+                header('HTTP/1.0 404 Not Found');
+                echo json_encode(array('error' => 'Survey not found'));
+                return;
+            }
+
+            Yii::log('Decoded filters: ' . print_r($filters, true), 'info');
+
+            // Build WHERE clause from filters
+            $whereConditions = $this->buildFilterWhereClause($filters);
+
+            Yii::log('WHERE conditions: ' . print_r($whereConditions, true), 'info');
+
+            // Generate filtered statistics
+            $filteredStats = $this->generateFilteredStats($surveyid, $whereConditions);
+
+            header('Content-Type: application/json');
+            echo json_encode($filteredStats);
+
+        } catch (Exception $e) {
+            Yii::log('Error in filterStatistics: ' . $e->getMessage(), 'error');
+            Yii::log('Stack trace: ' . $e->getTraceAsString(), 'error');
+            header('HTTP/1.0 500 Internal Server Error');
+            echo json_encode(array('error' => $e->getMessage(), 'trace' => $e->getTraceAsString()));
+        }
+    }
+
+    /**
+     * Build SQL WHERE clause from filter array
+     */
+    private function buildFilterWhereClause($filters)
+    {
+        $where = '1=1';
+        $params = array();
+
+        foreach ($filters as $filter) {
+            $filterType = $filter['type'];
+            $value = $filter['value'];
+
+            switch ($filterType) {
+                case 'date':
+                    if (!empty($value['start']) && !empty($value['end'])) {
+                        $where .= ' AND submitdate >= :dateStart AND submitdate <= :dateEnd';
+                        $params[':dateStart'] = $value['start'] . ' 00:00:00';
+                        $params[':dateEnd'] = $value['end'] . ' 23:59:59';
+                    }
+                    break;
+
+                case 'question':
+                    // Filter by specific question answer
+                    if (!empty($value['fieldName']) && !empty($value['answer'])) {
+                        $where .= ' AND ' . $value['fieldName'] . ' = :filter_' . $value['fieldName'];
+                        $params[':filter_' . $value['fieldName']] = $value['answer'];
+                    }
+                    break;
+            }
+        }
+
+        return array('where' => $where, 'params' => $params);
+    }
+
+    /**
+     * Generate filtered statistics
+     */
+    private function generateFilteredStats($surveyid, $whereConditions)
+    {
+        $responseTable = '{{survey_' . $surveyid . '}}';
+        $language = Survey::model()->findByPk($surveyid)->language;
+        $questions = Question::model()->primary()->getQuestionList($surveyid);
+
+        $results = array();
+
+        foreach ($questions as $question) {
+            $qid = $question['qid'];
+            $gid = $question['gid'];
+            $type = $question['type'];
+            $fieldName = $surveyid . 'X' . $gid . 'X' . $qid;
+
+            try {
+                // Get filtered responses
+                $command = Yii::app()->db->createCommand()
+                    ->select(array($fieldName))
+                    ->from($responseTable)
+                    ->where($whereConditions['where'], $whereConditions['params'])
+                    ->andWhere($fieldName . ' IS NOT NULL')
+                    ->andWhere($fieldName . ' != :empty', array(':empty' => ''));
+
+                $responses = $command->queryAll();
+
+                if (empty($responses)) {
+                    continue;
+                }
+
+                // Count occurrences
+                $counts = array();
+                foreach ($responses as $response) {
+                    $value = $response[$fieldName];
+                    if (!isset($counts[$value])) {
+                        $counts[$value] = 0;
+                    }
+                    $counts[$value]++;
+                }
+
+                // Get answer labels
+                $answerLabels = $this->getAnswerLabelsMap($qid, $language);
+
+                $labels = array();
+                $data = array();
+
+                foreach ($counts as $code => $count) {
+                    $labels[] = isset($answerLabels[$code]) ? $answerLabels[$code] : $code;
+                    $data[] = $count;
+                }
+
+                $results['quid' . $qid] = array(
+                    'labels' => $labels,
+                    'grawdata' => $data,
+                    'title' => strip_tags($question['question'])
+                );
+
+            } catch (Exception $e) {
+                // Skip questions with errors
+                continue;
+            }
+        }
+
+        return $results;
+    }
+
+    /**
+     * Get answer labels as a map
+     */
+    private function getAnswerLabelsMap($qid, $language)
+    {
+        $answers = Answer::model()->findAllByAttributes(array(
+            'qid' => $qid,
+            'language' => $language
+        ));
+
+        $map = array();
+        foreach ($answers as $answer) {
+            $map[$answer->code] = strip_tags($answer->answer);
+        }
+
+        return $map;
+    }
+
+    /**
+     * Get qualitative feedback (text responses) for analysis
+     */
+    public function getQualitativeFeedback()
+    {
+        try {
+            $surveyid = Yii::app()->request->getParam('surveyid');
+
+            if (!$surveyid) {
+                header('HTTP/1.0 400 Bad Request');
+                echo json_encode(array('error' => 'Survey ID required'));
+                return;
+            }
+
+            if (!Permission::model()->hasSurveyPermission($surveyid, 'statistics', 'read')) {
+                header('HTTP/1.0 403 Forbidden');
+                echo json_encode(array('error' => 'Permission denied'));
+                return;
+            }
+
+            $oSurvey = Survey::model()->findByPk($surveyid);
+            if (!$oSurvey) {
+                header('HTTP/1.0 404 Not Found');
+                echo json_encode(array('error' => 'Survey not found'));
+                return;
+            }
+
+            $language = $oSurvey->language;
+            $responseTable = '{{survey_' . $surveyid . '}}';
+
+            // Get text questions (S=Short text, T=Long text, U=Huge text, Q=Multiple short text)
+            $textQuestions = Question::model()->findAllByAttributes(
+                array(
+                    'sid' => $surveyid,
+                    'parent_qid' => 0,
+                ),
+                array(
+                    'condition' => "type IN ('S', 'T', 'U', 'Q')",
+                    'order' => 'group_order, question_order'
+                )
+            );
+
+            $qualitativeData = array();
+
+            foreach ($textQuestions as $question) {
+                $qid = $question->qid;
+                $gid = $question->gid;
+                $fieldName = $surveyid . 'X' . $gid . 'X' . $qid;
+
+                // Get question text
+                $questionL10n = QuestionL10n::model()->findByAttributes(array(
+                    'qid' => $qid,
+                    'language' => $language
+                ));
+
+                $questionText = $questionL10n ? strip_tags($questionL10n->question) : 'Question ' . $qid;
+
+                // Get all text responses for this question
+                try {
+                    $responses = Yii::app()->db->createCommand()
+                        ->select($fieldName)
+                        ->from($responseTable)
+                        ->where($fieldName . ' IS NOT NULL AND ' . $fieldName . ' != :empty', array(':empty' => ''))
+                        ->queryAll();
+
+                    $comments = array();
+                    foreach ($responses as $response) {
+                        $text = trim($response[$fieldName]);
+                        if (!empty($text)) {
+                            $comments[] = $text;
+                        }
+                    }
+
+                    if (!empty($comments)) {
+                        $qualitativeData[] = array(
+                            'qid' => $qid,
+                            'question' => $questionText,
+                            'comments' => $comments,
+                            'count' => count($comments),
+                            'wordFrequency' => $this->calculateWordFrequency($comments)
+                        );
+                    }
+
+                } catch (Exception $e) {
+                    // Skip questions with errors (table might not exist for this question)
+                    continue;
+                }
+            }
+
+            header('Content-Type: application/json');
+            echo json_encode($qualitativeData);
+
+        } catch (Exception $e) {
+            Yii::log('Error in getQualitativeFeedback: ' . $e->getMessage(), 'error');
+            header('HTTP/1.0 500 Internal Server Error');
+            echo json_encode(array('error' => $e->getMessage()));
+        }
+    }
+
+    /**
+     * Calculate word frequency from comments for word cloud
+     */
+    private function calculateWordFrequency($comments)
+    {
+        // Common stop words to exclude
+        $stopWords = array(
+            'the', 'is', 'at', 'which', 'on', 'a', 'an', 'as', 'are', 'was', 'were',
+            'been', 'be', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would',
+            'could', 'should', 'may', 'might', 'must', 'can', 'to', 'of', 'in', 'for',
+            'with', 'from', 'by', 'and', 'or', 'but', 'not', 'it', 'this', 'that',
+            'these', 'those', 'i', 'you', 'he', 'she', 'we', 'they', 'them', 'their',
+            'my', 'your', 'his', 'her', 'its', 'our', 'very', 'so', 'just', 'too',
+            'also', 'about', 'into', 'through', 'during', 'before', 'after', 'above',
+            'below', 'up', 'down', 'out', 'off', 'over', 'under', 'again', 'further',
+            'then', 'once', 'here', 'there', 'when', 'where', 'why', 'how', 'all',
+            'both', 'each', 'few', 'more', 'most', 'other', 'some', 'such', 'only',
+            'own', 'same', 'than', 'too', 'very', 'what', 'who', 'whom', 'whose'
+        );
+
+        $wordCounts = array();
+        $totalWords = 0;
+
+        foreach ($comments as $comment) {
+            // Convert to lowercase and remove punctuation
+            $text = strtolower($comment);
+            $text = preg_replace('/[^\w\s]/', ' ', $text);
+
+            // Split into words
+            $words = preg_split('/\s+/', $text, -1, PREG_SPLIT_NO_EMPTY);
+
+            foreach ($words as $word) {
+                // Skip short words and stop words
+                if (strlen($word) < 3 || in_array($word, $stopWords)) {
+                    continue;
+                }
+
+                if (!isset($wordCounts[$word])) {
+                    $wordCounts[$word] = 0;
+                }
+                $wordCounts[$word]++;
+                $totalWords++;
+            }
+        }
+
+        // Sort by frequency
+        arsort($wordCounts);
+
+        // Take top 50 words for word cloud
+        $topWords = array_slice($wordCounts, 0, 50, true);
+
+        // Format for word cloud (word, frequency)
+        $wordCloud = array();
+        foreach ($topWords as $word => $count) {
+            $wordCloud[] = array(
+                'text' => $word,
+                'weight' => $count,
+                'percentage' => $totalWords > 0 ? round(($count / $totalWords) * 100, 2) : 0
+            );
+        }
+
+        return $wordCloud;
+    }
+
+    /**
+     * Get response rate and survey metrics
+     */
+    public function getResponseMetrics()
+    {
+        try {
+            $surveyid = Yii::app()->request->getParam('surveyid');
+
+            if (!$surveyid) {
+                header('HTTP/1.0 400 Bad Request');
+                echo json_encode(array('error' => 'Survey ID required'));
+                return;
+            }
+
+            if (!Permission::model()->hasSurveyPermission($surveyid, 'statistics', 'read')) {
+                header('HTTP/1.0 403 Forbidden');
+                echo json_encode(array('error' => 'Permission denied'));
+                return;
+            }
+
+            $responseTable = '{{survey_' . $surveyid . '}}';
+            $oSurvey = Survey::model()->findByPk($surveyid);
+
+            if (!$oSurvey) {
+                header('HTTP/1.0 404 Not Found');
+                echo json_encode(array('error' => 'Survey not found'));
+                return;
+            }
+
+            // Count total responses
+            $totalResponses = Yii::app()->db->createCommand()
+                ->select('COUNT(*) as count')
+                ->from($responseTable)
+                ->queryScalar();
+
+            // Count complete responses
+            $completeResponses = Yii::app()->db->createCommand()
+                ->select('COUNT(*) as count')
+                ->from($responseTable)
+                ->where('submitdate IS NOT NULL')
+                ->queryScalar();
+
+            // Count incomplete responses
+            $incompleteResponses = $totalResponses - $completeResponses;
+
+            // Get survey token count (invited participants)
+            $invitedCount = 0;
+            if ($oSurvey->anonymized == 'N') {
+                $tokenTable = '{{tokens_' . $surveyid . '}}';
+                try {
+                    $invitedCount = Yii::app()->db->createCommand()
+                        ->select('COUNT(*) as count')
+                        ->from($tokenTable)
+                        ->queryScalar();
+                } catch (Exception $e) {
+                    // Token table might not exist
+                    $invitedCount = 0;
+                }
+            }
+
+            // Calculate response rate
+            $responseRate = 0;
+            if ($invitedCount > 0) {
+                $responseRate = round(($totalResponses / $invitedCount) * 100, 2);
+            }
+
+            // Calculate completion rate
+            $completionRate = 0;
+            if ($totalResponses > 0) {
+                $completionRate = round(($completeResponses / $totalResponses) * 100, 2);
+            }
+
+            // Get date range of responses
+            $dateRange = Yii::app()->db->createCommand()
+                ->select('MIN(startdate) as first_response, MAX(submitdate) as last_response')
+                ->from($responseTable)
+                ->queryRow();
+
+            $metrics = array(
+                'totalResponses' => (int)$totalResponses,
+                'completeResponses' => (int)$completeResponses,
+                'incompleteResponses' => (int)$incompleteResponses,
+                'invitedParticipants' => (int)$invitedCount,
+                'responseRate' => $responseRate,
+                'completionRate' => $completionRate,
+                'firstResponse' => $dateRange['first_response'],
+                'lastResponse' => $dateRange['last_response'],
+                'surveyActive' => $oSurvey->active == 'Y'
+            );
+
+            header('Content-Type: application/json');
+            echo json_encode($metrics);
+
+        } catch (Exception $e) {
+            Yii::log('Error in getResponseMetrics: ' . $e->getMessage(), 'error');
+            header('HTTP/1.0 500 Internal Server Error');
+            echo json_encode(array('error' => $e->getMessage()));
+        }
+    }
+
+    /**
      * Renders template(s) wrapped in header and footer
      *
      * @param string $sAction Current action, the folder to fetch views from

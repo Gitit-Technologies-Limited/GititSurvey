@@ -13,17 +13,18 @@
 <table class='table table-bordered printable' id="quid_<?php echo $outputs['parentqid'];?>">
     <thead>
         <tr class="active">
-            <th colspan='4' align='center' style='text-align: center; '>
-                <strong>
+            <th colspan='4' align='center' style='text-align: center; background: linear-gradient(135deg, #122867 0%, #2d4a9e 100%); color: white;'>
+                <strong style="font-size: 1.15rem; letter-spacing: 0.3px;">
+                    <i class="ri-file-list-line" style="margin-right: 0.5rem;"></i>
                     <?php echo sprintf(gT("Summary for %s"), $outputs['qtitle']); ?>
                 </strong>
-                <button class="float-end action_js_export_to_pdf btn btn-outline-secondary btn-sm d-print-none" data-question-id="quid_<?php echo $outputs['parentqid'];?>" data-bs-toggle="tooltip" title="<?php eT('Export this question to PDF.'); ?>" onclick="return false;">
+                <button class="float-end action_js_export_to_pdf btn btn-outline-light btn-sm d-print-none" data-question-id="quid_<?php echo $outputs['parentqid'];?>" data-bs-toggle="tooltip" title="<?php eT('Export this question to PDF.'); ?>" onclick="return false;" style="border-width: 2px; font-weight: 600;">
                     <i class="ri-file-pdf-line"></i>
                 </button>
             </th>
         </tr>
-        <tr>
-            <td colspan='4' align='center' style='text-align: center; '>
+        <tr style="background: linear-gradient(to right, rgba(18, 40, 103, 0.05) 0%, rgba(18, 40, 103, 0.02) 100%);">
+            <td colspan='4' align='center' style='text-align: center; padding: 1.25rem; font-size: 1rem; color: #122867; font-weight: 500;'>
                 <!-- question title -->
                 <?php echo $outputs['qquestion'];?>
             </th>
