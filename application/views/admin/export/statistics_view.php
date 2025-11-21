@@ -9,7 +9,13 @@
 // DO NOT REMOVE This is for automated testing to validate we see that page
 echo viewHelper::getViewTestTag('statisticsIndex');
 
+// Register custom statistics CSS with cache busting
+App()->getClientScript()->registerCssFile(Yii::app()->getConfig('publicurl') . 'assets/styles/statistics-custom.css?v=' . time());
+
 ?>
+<!-- Custom Statistics Styling - Direct Link -->
+<link rel="stylesheet" type="text/css" href="<?php echo Yii::app()->getConfig('publicurl'); ?>assets/styles/statistics-custom.css?v=<?php echo time(); ?>">
+
 <!-- Javascript variables  -->
 <?php $this->renderPartial('/admin/export/statistics_subviews/_statistics_view_scripts', array('sStatisticsLanguage' => $sStatisticsLanguage, 'surveyid' => $surveyid, 'showtextinline' => $showtextinline)); ?>
 <?php echo CHtml::form(array("admin/statistics/sa/index/surveyid/{$surveyid}/"), 'post', array('name' => 'generate-statistics', 'class' => '', 'id' => 'generate-statistics')); ?>

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSS Test</title>
+    <link rel="stylesheet" href="./assets/styles/statistics-custom.css">
+    <style>
+        body {
+            padding: 2rem;
+            font-family: Arial, sans-serif;
+        }
+    </style>
+</head>
+<body>
+    <h1>CSS Loading Test</h1>
+
+    <div id="statisticsview" class="side-body">
+        <h4>Statistics Header Test</h4>
+
+        <div class="accordion-item">
+            <div class="accordion-header">
+                <button class="accordion-button">Test Accordion Button</button>
+            </div>
+        </div>
+
+        <div class="chartjs-buttons">
+            <button class="btn chart-type-control">
+                <i class="ri-bar-chart-fill"></i> Bar Chart
+            </button>
+            <button class="btn btn-download-chart">
+                <i class="ri-download-line"></i> Download Chart
+            </button>
+            <button class="btn btn-download-csv">
+                <i class="ri-file-excel-line"></i> Download CSV
+            </button>
+        </div>
+
+        <table class="table printable">
+            <thead>
+                <tr class="active">
+                    <th>Test Header</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Test Data</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <hr>
+    <p><strong>If you see:</strong></p>
+    <ul>
+        <li>Blue/purple gradient on accordion button - ✅ CSS is working!</li>
+        <li>Styled buttons with shadows - ✅ CSS is working!</li>
+        <li>Blue gradient on table header - ✅ CSS is working!</li>
+        <li>Plain unstyled elements - ❌ CSS not loading</li>
+    </ul>
+</body>
+</html>

@@ -2118,6 +2118,7 @@ class statistics_helper
                 $aData['grawdata'] = $grawdata;
                 $aData['color'] = 0; // random truc much
                 $aData['COLORS_FOR_SURVEY'] = $COLORS_FOR_SURVEY;
+                $aData['qtitle'] = $outputs['qtitle'] ?? '';
                 // Output graph
                 $statisticsoutput .= Yii::app()->getController()->renderPartial('/admin/export/generatestats/simplestats/_statisticsoutput_graphs', $aData, true);
             } else {

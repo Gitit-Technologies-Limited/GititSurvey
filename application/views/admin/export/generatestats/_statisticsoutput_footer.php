@@ -18,7 +18,8 @@
 
 statisticsData['quid'+'<?php echo $qqid; ?>'] = {
     labels : <?php echo json_encode($graph_labels); ?>,
-    grawdata : <?php echo json_encode($grawdata); ?>, // the datas to generate the graph  
-    labels_percent : <?php echo json_encode($graph_labels_percent); ?>, // the array of labels  
-    grawdata_percent : <?php echo json_encode($grawdata_percent);?> // the datas to generate the graph using percentages (pie, Doughnut, polar ) 
+    grawdata : <?php echo json_encode($grawdata); ?>, // the datas to generate the graph
+    labels_percent : <?php echo json_encode($graph_labels_percent); ?>, // the array of labels
+    grawdata_percent : <?php echo json_encode($grawdata_percent);?>, // the datas to generate the graph using percentages (pie, Doughnut, polar )
+    title : <?php echo json_encode($lbl ?? ''); ?> // the question title
 };

@@ -14,3 +14,5 @@
         ?>
     </div>
 </div>
+</div><!-- Close chart-section -->
+</div><!-- Close question-card -->
