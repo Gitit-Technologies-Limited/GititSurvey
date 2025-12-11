@@ -1029,3 +1029,56 @@
         max-height: 400px;
     }
 }
+
+/* ========================================
+   Metabase Integration Styles
+   ======================================== */
+
+/* Metabase Dashboard Container */
+#metabase-dashboard-container {
+    min-height: 800px;
+    background: #f8f9fa;
+    position: relative;
+}
+
+#metabase-dashboard-container iframe {
+    border: none;
+    width: 100%;
+    min-height: 800px;
+    display: block;
+}
+
+/* Card Header Badge */
+.card-header .badge {
+    font-size: 0.7rem;
+    font-weight: 500;
+    vertical-align: middle;
+}
+
+/* Loading Animation */
+#metabase-loading {
+    transition: opacity 0.3s ease-out;
+}
+
+#metabase-loading.fade-out {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Ensure iframe is responsive */
+@media (max-width: 768px) {
+    #metabase-dashboard-container {
+        min-height: 600px;
+    }
+
+    #metabase-dashboard-container iframe {
+        min-height: 600px;
+    }
+}
+
+/* Print styles - hide loading overlay */
+@media print {
+    #metabase-loading {
+        display: none !important;
+    }
+}
