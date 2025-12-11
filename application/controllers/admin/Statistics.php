@@ -796,6 +796,19 @@ class Statistics extends SurveyCommonAction
         $aData['oStatisticsHelper'] = $helper;
         $aData['expertstats'] = true;
 
+        // Metabase Integration
+        Yii::app()->loadHelper('MetabaseHelper');
+        $aData['metabaseEnabled'] = MetabaseHelper::isEnabled();
+        $aData['metabaseAvailable'] = MetabaseHelper::isAvailable();
+
+        if ($aData['metabaseEnabled'] && $aData['metabaseAvailable']) {
+            $aData['metabaseIframe'] = MetabaseHelper::getEmbedIframe($iSurveyId);
+            $aData['metabaseDashboardId'] = MetabaseHelper::getDashboardIdForSurvey($iSurveyId);
+        } else {
+            $aData['metabaseIframe'] = null;
+            $aData['metabaseDashboardId'] = null;
+        }
+
         //Call the javascript file
         App()->getClientScript()->registerScriptFile(App()->getConfig('adminscripts') . 'statistics.js', CClientScript::POS_BEGIN);
         App()->getClientScript()->registerScriptFile(App()->getConfig('adminscripts') . 'json-js/json2.min.js');
