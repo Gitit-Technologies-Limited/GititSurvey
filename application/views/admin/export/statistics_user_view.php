@@ -203,6 +203,78 @@ window.addEventListener('load', function() {
         </div>
     </div>
 
+    <?php if (isset($metabaseEnabled) && $metabaseEnabled && isset($metabaseIframe) && $metabaseIframe): ?>
+        <!-- Metabase Advanced Analytics Section -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card shadow-sm border-0">
+                    <div class="card-header" style="background: linear-gradient(135deg, #122867 0%, #1e3a8a 100%); color: white;">
+                        <h5 class="mb-0">
+                            <i class="ri-dashboard-line"></i>
+                            Advanced Analytics Dashboard
+                            <span class="badge bg-light text-dark ms-2">Powered by Metabase</span>
+                        </h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div id="metabase-dashboard-container" class="position-relative">
+                            <!-- Loading Overlay -->
+                            <div id="metabase-loading" class="position-absolute w-100 h-100 d-flex align-items-center justify-content-center"
+                                 style="background: rgba(255,255,255,0.9); z-index: 10;">
+                                <div class="text-center">
+                                    <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                    <p class="text-muted">Loading analytics dashboard...</p>
+                                </div>
+                            </div>
+
+                            <!-- Metabase Iframe -->
+                            <?php echo $metabaseIframe; ?>
+                        </div>
+                    </div>
+                    <div class="card-footer text-muted small">
+                        <i class="ri-information-line"></i>
+                        Interactive dashboard
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+        // Remove loading overlay when iframe loads
+        document.addEventListener('DOMContentLoaded', function() {
+            const iframe = document.querySelector('#metabase-dashboard-container iframe');
+            if (iframe) {
+                iframe.addEventListener('load', function() {
+                    setTimeout(function() {
+                        document.getElementById('metabase-loading').style.display = 'none';
+                    }, 500);
+                });
+
+                // Timeout fallback
+                setTimeout(function() {
+                    document.getElementById('metabase-loading').style.display = 'none';
+                }, 5000);
+            }
+        });
+        </script>
+
+    <?php elseif (isset($metabaseEnabled) && $metabaseEnabled && (!isset($metabaseAvailable) || !$metabaseAvailable)): ?>
+        <!-- Metabase Unavailable Warning -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="alert alert-warning" role="alert">
+                    <i class="ri-error-warning-line"></i>
+                    <strong>Advanced Analytics Unavailable</strong>
+                    <p class="mb-0 mt-2">
+                        The Metabase analytics service is currently unavailable.
+                        Standard statistics are still available below.
+                    </p>
+                </div>
+            </div>
+        </div>
+    <?php endif; ?>
+
     <div class="row">
         <div class="col-12 content-right">
             <input type="hidden" id="showGraphOnPageLoad" />
