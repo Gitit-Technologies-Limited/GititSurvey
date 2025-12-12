@@ -73,7 +73,6 @@ This deployment consists of 5 Docker containers:
 
 ### Server Requirements
 
-- **OS**: Linux (Ubuntu 20.04+, Debian 11+, CentOS 8+)
 - **Ports**: 8080, 3000 must be available
 - **Network**: Outbound internet access for pulling images
 
