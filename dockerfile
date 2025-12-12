@@ -16,6 +16,10 @@ RUN apt-get update && apt-get install -y \
 # Enable Apache modules
 RUN a2enmod rewrite headers
 
+# Copy migration entrypoint script
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+
 # Set permissions
 RUN mkdir -p /var/www/html/upload /var/www/html/application/config /var/www/html/tmp \
     && chmod -R 755 /var/www/html/tmp \
