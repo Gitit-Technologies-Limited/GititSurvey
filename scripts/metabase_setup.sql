@@ -1,28 +1,37 @@
--- Metabase MySQL Read-Only User Setup Script
--- This script creates a read-only user for Metabase to access LimeSurvey data
+-- Metabase MySQL Setup Script
+-- This script creates:
+-- 1. Metabase application database and user (for storing Metabase's own data)
+-- 2. Read-only user for Metabase to access survey data
 --
--- Usage:
---   docker exec -i mysql mysql -uroot -prootpassword < scripts/metabase_setup.sql
+-- IMPORTANT: Update the passwords below to match your .env file:
+--   - Line 21: METABASE_MYSQL_PASSWORD
+--   - Line 26: METABASE_READONLY_PASSWORD
 --
--- Or connect to MySQL container and run manually:
---   docker exec -it mysql mysql -uroot -prootpassword
---   source /var/www/html/scripts/metabase_setup.sql
+-- This script runs automatically on first container startup via:
+--   /docker-entrypoint-initdb.d/metabase_setup.sql
+--
+-- Manual execution (if needed):
+--   docker exec -i mysql mysql -uroot -p${MYSQL_ROOT_PASSWORD} < scripts/metabase_setup.sql
 
--- Create read-only user for Metabase
--- Password: metabase_readonly_pass (change this in production!)
+-- 1. Create Metabase application database
+CREATE DATABASE IF NOT EXISTS `metabase` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- 2. Create Metabase application user (for Metabase's own tables)
+-- Using mysql_native_password for compatibility with Metabase's MySQL driver
+CREATE USER IF NOT EXISTS 'metabase_user'@'%' IDENTIFIED WITH mysql_native_password BY 'metabase_secure_pass';
+GRANT ALL PRIVILEGES ON `metabase`.* TO 'metabase_user'@'%';
+
+-- 3. Create read-only user for Metabase to access survey data
 CREATE USER IF NOT EXISTS 'metabase_readonly'@'%' IDENTIFIED BY 'metabase_readonly_pass';
-
--- Grant SELECT (read-only) privileges on the surveyapp database
 GRANT SELECT ON `surveyapp`.* TO 'metabase_readonly'@'%';
-
--- Grant permission to view table structures and metadata
 GRANT SHOW VIEW ON `surveyapp`.* TO 'metabase_readonly'@'%';
 
 -- Flush privileges to apply changes
 FLUSH PRIVILEGES;
 
--- Verify user was created
-SELECT User, Host FROM mysql.user WHERE User = 'metabase_readonly';
+-- Verify users were created
+SELECT User, Host FROM mysql.user WHERE User LIKE 'metabase%';
 
 -- Show granted permissions
+SHOW GRANTS FOR 'metabase_user'@'%';
 SHOW GRANTS FOR 'metabase_readonly'@'%';

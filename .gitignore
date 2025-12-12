@@ -22,6 +22,9 @@
 !.env-cmdrc
 !.eslintignore
 
+# Explicitly ignore .env (contains sensitive credentials)
+.env
+
 # upload directory : whole except the index.html and readme.txt
 /upload/*.*
 /upload/uploadsave/**/*.*

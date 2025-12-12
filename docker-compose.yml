@@ -1,32 +1,51 @@
-version: "3.8"
-
 services:
   surveyapp:
     build: .
     container_name: surveyapp
     ports:
-      - "8080:80" # Maps port 8080 on your host to port 80 in the container
+      - "${SURVEYAPP_PORT}:80" # Maps port on your host to port 80 in the container
     volumes:
       - ./:/var/www/html:cached
     environment:
       - DB_HOST=mysql
       - DB_PORT=3306
-      - DB_NAME=surveyapp
-      - DB_USER=surveyapp_user
-      - DB_PASSWORD=xdgjwq45-4jg
+      - DB_NAME=${MYSQL_DATABASE}
+      - DB_USER=${MYSQL_USER}
+      - DB_PASSWORD=${MYSQL_PASSWORD}
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+  migrate:
+    build: .
+    container_name: surveyapp-migrate
+    volumes:
+      - ./:/var/www/html:cached
+    environment:
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_NAME=${MYSQL_DATABASE}
+      - DB_USER=${MYSQL_USER}
+      - DB_PASSWORD=${MYSQL_PASSWORD}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    entrypoint: ["/docker-entrypoint.sh"]
+    restart: "no"
 
   mysql:
     image: mysql:8.0
     container_name: mysql
     volumes:
       - mysql_data:/var/lib/mysql
+      - ./scripts/metabase_setup.sql:/docker-entrypoint-initdb.d/metabase_setup.sql:ro
     environment:
-      MYSQL_ROOT_PASSWORD: rootpassword
-      MYSQL_DATABASE: surveyapp
-      MYSQL_USER: surveyapp_user
-      MYSQL_PASSWORD: xdgjwq45-4jg
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "--silent"]
       interval: 10s
@@ -36,37 +55,41 @@ services:
     image: metabase/metabase:latest
     container_name: metabase
     ports:
-      - "3000:3000"
+      - "${METABASE_PORT}:3000"
     environment:
       MB_DB_TYPE: postgres
-      MB_DB_DBNAME: metabase
+      MB_DB_DBNAME: ${METABASE_DB_NAME}
       MB_DB_PORT: 5432
-      MB_DB_USER: metabase
-      MB_DB_PASS: metabase_password
+      MB_DB_USER: ${METABASE_DB_USER}
+      MB_DB_PASS: ${METABASE_DB_PASSWORD}
       MB_DB_HOST: metabase-db
-      MB_EMBEDDING_SECRET_KEY: ${METABASE_EMBEDDING_SECRET:-generate_this_on_first_run}
+      MB_DB_CONNECTION_URI: "jdbc:postgresql://metabase-db:5432/${METABASE_DB_NAME}?socketTimeout=0&tcpKeepAlive=true"
+      JAVA_OPTS: ${METABASE_JAVA_OPTS}
     depends_on:
-      - metabase-db
-      - mysql
+      metabase-db:
+        condition: service_healthy
     volumes:
       - metabase_data:/metabase-data
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+    # Healthcheck disabled during initial setup to prevent migration interruption
+    # healthcheck:
+    #   test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 5
+    #   start_period: 300s
 
   metabase-db:
     image: postgres:13
     container_name: metabase-db
     environment:
-      POSTGRES_USER: metabase
-      POSTGRES_PASSWORD: metabase_secure_password
-      POSTGRES_DB: metabase
+      POSTGRES_USER: ${METABASE_DB_USER}
+      POSTGRES_PASSWORD: ${METABASE_DB_PASSWORD}
+      POSTGRES_DB: ${METABASE_DB_NAME}
+    command: postgres -c statement_timeout=0 -c idle_in_transaction_session_timeout=0
     volumes:
       - metabase_postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U metabase"]
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER"]
       interval: 10s
       retries: 3
 
