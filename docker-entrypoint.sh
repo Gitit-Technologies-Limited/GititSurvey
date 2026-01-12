@@ -32,7 +32,7 @@ fi
 if [ -f "/var/www/html/application/commands/console.php" ]; then
     echo "Running Survey migrations..."
     cd /var/www/html
-    php application/commands/console.php migrate up || {
+    php application/commands/console.php migrate up  --interactive=0|| {
         echo "Migration command failed or not applicable"
         exit 0
     }
