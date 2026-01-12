@@ -12,6 +12,9 @@
     <div class="row main-body">
         <div class="col-12 col-xl col-right">
             <div class="login-panel">
+                <div class="text-center mb-4">
+                    <img src="<?php echo Yii::app()->getConfig('imageurl'); ?>/LBS-Logo-1.png" alt="LBS Logo" style="max-width: 200px; height: auto;">
+                </div>
                 <h1><?php eT("Administration"); ?></h1>
                 <p><?php eT("Recover your password"); ?></p>
 

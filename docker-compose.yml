@@ -6,6 +6,10 @@ services:
       - "${SURVEYAPP_PORT}:80" # Maps port on your host to port 80 in the container
     volumes:
       - ./:/var/www/html:cached
+      - surveyapp_tmp:/var/www/html/tmp
+      - surveyapp_upload:/var/www/html/upload
+      - surveyapp_sessions:/var/www/html/sessions
+      - surveyapp_runtime:/var/www/html/application/runtime
     environment:
       - DB_HOST=mysql
       - DB_PORT=3306
@@ -17,6 +21,8 @@ services:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
+    networks:
+      - surveyapp_net
 
   migrate:
     build: .
@@ -34,10 +40,16 @@ services:
         condition: service_healthy
     entrypoint: ["/docker-entrypoint.sh"]
     restart: "no"
+    networks:
+      - surveyapp_net
 
   mysql:
     image: mysql:8.0
-    container_name: mysql
+    container_name: surveyapp-mysql
+    ports:
+    - "3307:3306"
+    command:
+    - --log-bin-trust-function-creators=1
     volumes:
       - mysql_data:/var/lib/mysql
       - ./scripts/metabase_setup.sql:/docker-entrypoint-initdb.d/metabase_setup.sql:ro
@@ -50,6 +62,8 @@ services:
       test: ["CMD", "mysqladmin", "ping", "--silent"]
       interval: 10s
       retries: 3
+    networks:
+      - surveyapp_net
 
   metabase:
     image: metabase/metabase:latest
@@ -77,6 +91,8 @@ services:
     #   timeout: 10s
     #   retries: 5
     #   start_period: 300s
+    networks:
+      - surveyapp_net
 
   metabase-db:
     image: postgres:13
@@ -92,11 +108,21 @@ services:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER"]
       interval: 10s
       retries: 3
+    networks:
+      - surveyapp_net
 
 volumes:
   surveyapp_data:
-  surveyapp_config:
   surveyapp_tmp:
+  surveyapp_assets:
+  surveyapp_upload:
+  surveyapp_sessions:
+  surveyapp_runtime:
   mysql_data:
   metabase_data:
   metabase_postgres_data:
+
+ 
+networks:
+  surveyapp_net:
+    driver: bridge
