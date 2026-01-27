@@ -37,7 +37,7 @@ if (isset($expertstats) && $expertstats === true) {
         [
             'name' => 'view-button',
             'id' => 'view-button',
-            'text' => gT("View statistics"),
+            'text' => gT("View / Download statistics"),
             'htmlOptions' => [
                 'class' => 'btn btn-primary',
                 'data-submit-form' => 1,
