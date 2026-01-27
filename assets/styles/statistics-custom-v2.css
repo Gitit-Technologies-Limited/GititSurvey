@@ -11,36 +11,89 @@
 }
 
 /* ================================================
+   CRITICAL OVERRIDES - Ensure scrolling works
+   ================================================ */
+/* Force body to allow overflow */
+body.adminlte {
+    overflow: visible !important;
+}
+
+/* Ensure parent containers don't interfere with sticky positioning */
+#content-container,
+.content-wrapper,
+.main-content {
+    transform: none !important;
+    will-change: auto !important;
+    contain: none !important;
+}
+
+/* Fix content-right container width issues */
+.content-right {
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+/* ================================================
    RESET AND CONTAINER SETUP
    ================================================ */
 #statisticsview.side-body {
     background: linear-gradient(to bottom, #f0f4ff 0%, #fafbfe 50%, #ffffff 100%) !important;
     padding: 2rem !important;
+    /* Enable scrolling when content exceeds viewport */
+    max-height: 100vh !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    position: relative !important;
+    /* Ensure this is a scroll container */
+    contain: layout !important;
+    isolation: isolate !important;
+    /* Ensure full width for all child elements */
+    width: 100% !important;
 }
 
-/* Make statisticsoutput a CSS Grid */
+/* Force all direct child rows of statisticsview to be full width */
+#statisticsview > .row {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+
+/* Only target direct child columns - don't affect nested grid items */
+#statisticsview > .row > .col-12,
+#statisticsview > .row > [class*="col-"] {
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: 0 0 100% !important;
+    padding-left: 15px !important;
+    padding-right: 15px !important;
+}
+
+/* Make statisticsoutput a CSS Grid - Fixed for overflow handling */
 #statisticsoutput {
     display: grid !important;
-    grid-template-columns: repeat(2, 1fr) !important;
+    
+    /* Use auto-fit for dynamic column adjustment based on available space */
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 450px), 1fr)) !important;
     gap: 2rem !important;
     width: 100% !important;
+    max-width: 100% !important;
     padding: 0 !important;
     margin: 2rem 0 !important;
+    overflow: visible !important;
+    /* Allow content to flow naturally within scrollable container */
+    min-height: auto !important;
+}
+
+/* Prevent grid blowout with overflow handling */
+#statisticsoutput > * {
+    min-width: 0 !important;
+    min-height: 0 !important;
+    max-width: 100% !important;
 }
 
 /* Mobile: 1 column */
-@media (max-width: 991px) {
-    #statisticsoutput {
-        grid-template-columns: 1fr !important;
-    }
-}
-
-/* Large screens: 3 columns */
-@media (min-width: 1600px) {
-    #statisticsoutput {
-        grid-template-columns: repeat(3, 1fr) !important;
-    }
-}
+/*  */
 
 /* ================================================
    CARD STYLING
@@ -57,6 +110,10 @@
     border: 2px solid rgba(18, 40, 103, 0.08) !important;
     position: relative !important;
     margin: 0 !important;
+    /* Fix for grid item overflow */
+    min-width: 0 !important;
+    min-height: 0 !important;
+    box-sizing: border-box !important;
 }
 
 /* Blue accent bar */
@@ -157,6 +214,26 @@
     padding: 2rem !important;
     border-radius: 12px !important;
     margin-bottom: 1.5rem !important;
+    /* Prevent overflow */
+    max-width: 100% !important;
+    overflow: hidden !important;
+}
+
+.chartjs-container canvas {
+    max-width: 100% !important;
+    height: auto !important;
+}
+
+/* Responsive chart sizing */
+@media (max-width: 767px) {
+    .chartjs-container {
+        padding: 1rem !important;
+    }
+
+    .canvas-chart {
+        width: 100% !important;
+        height: auto !important;
+    }
 }
 
 /* Legend */
@@ -242,8 +319,48 @@
 }
 
 /* ================================================
-   SCROLLBAR
+   SCROLLBAR STYLING
    ================================================ */
+/* Main container scrollbar */
+#statisticsview.side-body::-webkit-scrollbar {
+    width: 12px;
+}
+
+#statisticsview.side-body::-webkit-scrollbar-track {
+    background: #f0f4ff;
+    border-radius: 10px;
+}
+
+#statisticsview.side-body::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, var(--primary-color) 0%, var(--primary-light) 100%);
+    border-radius: 10px;
+    border: 2px solid #f0f4ff;
+}
+
+#statisticsview.side-body::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, var(--primary-dark) 0%, var(--primary-color) 100%);
+}
+
+/* Smooth scrolling behavior */
+#statisticsview.side-body {
+    scroll-behavior: smooth !important;
+}
+
+/* Firefox scrollbar styling */
+#statisticsview.side-body {
+    scrollbar-width: thin;
+    scrollbar-color: var(--primary-color) #f0f4ff;
+}
+
+/* Mobile viewport adjustments */
+@media (max-width: 767px) {
+    #statisticsview.side-body {
+        padding: 1rem !important;
+        max-height: calc(100vh - 60px) !important; /* Account for mobile header */
+    }
+}
+
+/* Legend scrollbar */
 .legend::-webkit-scrollbar {
     width: 6px;
 }
@@ -283,13 +400,71 @@
 /* ================================================
    ENHANCED EXPORT TOOLBAR
    ================================================ */
+/* Fix Bootstrap row/col wrapper to allow full width */
+#statisticsview .row.mb-4 {
+    position: relative !important;
+    z-index: 100 !important;
+    margin-bottom: 2rem !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+
+#statisticsview .row.mb-4 .col-12 {
+    position: relative !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding-left: 15px !important;
+    padding-right: 15px !important;
+    flex: 0 0 100% !important;
+}
+
 .export-toolbar {
-    background: white;
-    border-radius: 16px;
-    padding: 2rem;
-    box-shadow: 0 4px 20px rgba(18, 40, 103, 0.1);
-    border: 2px solid rgba(18, 40, 103, 0.08);
-    margin-bottom: 2rem;
+    background: white !important;
+    border-radius: 16px !important;
+    padding: 2rem !important;
+    box-shadow: 0 4px 20px rgba(18, 40, 103, 0.1) !important;
+    border: 2px solid rgba(18, 40, 103, 0.08) !important;
+    margin-bottom: 2rem !important;
+    /* Make toolbar sticky when scrolling */
+    position: sticky !important;
+    position: -webkit-sticky !important;
+    top: 0 !important;
+    z-index: 1000 !important;
+    /* Add subtle backdrop when scrolling */
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    /* CRITICAL: Fix width */
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    align-self: flex-start !important;
+    min-height: 100px !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    /* Prevent flex shrinking */
+    flex-shrink: 0 !important;
+}
+
+/* Add shadow when toolbar is scrolled */
+.export-toolbar.scrolled {
+    box-shadow: 0 8px 32px rgba(18, 40, 103, 0.15) !important;
+}
+
+/* Mobile responsive toolbar */
+@media (max-width: 767px) {
+    .export-toolbar {
+        padding: 1rem !important;
+        border-radius: 12px !important;
+        margin-bottom: 1.5rem !important;
+    }
+
+    .export-toolbar .toolbar-title {
+        font-size: 1rem !important;
+        margin-bottom: 1rem !important;
+    }
 }
 
 .export-toolbar .toolbar-title {
@@ -386,6 +561,20 @@
     display: flex;
     flex-wrap: wrap;
     gap: 1rem;
+    justify-content: center;
+}
+
+/* Mobile responsive for export buttons */
+@media (max-width: 767px) {
+    .export-buttons-group {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .btn-export {
+        width: 100% !important;
+        justify-content: center;
+    }
 }
 
 .btn-export {
@@ -1076,9 +1265,82 @@
     }
 }
 
-/* Print styles - hide loading overlay */
+/* ================================================
+   BACK TO TOP BUTTON
+   ================================================ */
+#backToTop {
+    position: fixed !important;
+    bottom: 2rem !important;
+    right: 2rem !important;
+    width: 50px !important;
+    height: 50px !important;
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-light) 100%) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 50% !important;
+    cursor: pointer !important;
+    display: none !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 1.5rem !important;
+    box-shadow: 0 4px 20px rgba(18, 40, 103, 0.3) !important;
+    transition: all 0.3s ease !important;
+    z-index: 9999 !important;
+    opacity: 1 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
+#backToTop:hover {
+    transform: translateY(-5px) !important;
+    box-shadow: 0 8px 30px rgba(18, 40, 103, 0.4) !important;
+    background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-color) 100%) !important;
+}
+
+#backToTop.show {
+    display: flex !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+}
+
+/* Mobile adjustment */
+@media (max-width: 767px) {
+    #backToTop {
+        bottom: 1rem;
+        right: 1rem;
+        width: 45px;
+        height: 45px;
+        font-size: 1.25rem;
+    }
+}
+
+/* Print styles - hide loading overlay and back to top */
 @media print {
-    #metabase-loading {
+    #metabase-loading,
+    #backToTop {
         display: none !important;
     }
+}
+
+/* ================================================
+   LOADING INDICATOR FOR CHARTS
+   ================================================ */
+.chartjs-container.loading {
+    min-height: 300px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #f0f4ff 0%, #ffffff 100%);
+}
+
+.chartjs-container.loading::after {
+    content: "Loading chart...";
+    color: var(--primary-color);
+    font-weight: 600;
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 1; }
 }

@@ -2124,7 +2124,6 @@ class statistics_helper
             } else {
                 $statisticsoutput .= Yii::app()->getController()->renderPartial('/admin/export/generatestats/simplestats/_statisticsoutput_nograph', array(), true);
             }
-            $statisticsoutput .= "</div>\n";
         }
 
 

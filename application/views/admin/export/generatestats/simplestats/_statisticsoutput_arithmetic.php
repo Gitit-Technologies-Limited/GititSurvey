@@ -7,6 +7,8 @@
  */
 ?>
 
+<table class="statistics-table">
+<tbody>
 <tr>
     <td align='center'>
         <?php eT("Arithmetic mean"); ?>
@@ -35,3 +37,5 @@
         &nbsp;
     </td>
 </tr>
+</tbody>
+</table>
