@@ -14,6 +14,7 @@ RUN apt-get update && apt-get install -y \
     libkrb5-dev \
     unzip \
     git \
+    default-mysql-client \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-configure ldap --with-libdir=lib/x86_64-linux-gnu \
     && docker-php-ext-configure imap --with-kerberos --with-imap-ssl \
@@ -41,6 +42,7 @@ RUN chmod +x /docker-entrypoint.sh
 # Set permissions for app folders (tmp handled by host)
 RUN mkdir -p \
     /var/www/html/upload \
+    /var/www/html/application/config \
     /var/www/html/application/runtime \
     /var/www/html/sessions \
     /var/www/html/tmp \
@@ -53,6 +55,7 @@ RUN mkdir -p \
         /var/www/html/application/runtime \
         /var/www/html/sessions \
         /var/www/html/tmp \
+        /var/www/html/application/config \
     \
     # Create built-in .user.ini for session settings
     && echo 'session.save_path="/var/www/html/sessions"' > /var/www/html/.user.ini \
