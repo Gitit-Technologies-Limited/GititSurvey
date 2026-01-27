@@ -40,3 +40,9 @@ if [ -f "/var/www/html/application/commands/console.php" ]; then
 else
     echo "Console script not found, skipping migrations"
 fi
+
+# Initialize Metabase views
+if [ -f "/var/www/html/scripts/init_metabase_views.sh" ]; then
+    echo "Initializing Metabase views..."
+    bash /var/www/html/scripts/init_metabase_views.sh
+fi

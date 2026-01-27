@@ -285,4 +285,36 @@ window.addEventListener('load', function() {
     </div>
 </div>
 
+<!-- Back to Top Button -->
+<button id="backToTop" title="Back to top" aria-label="Scroll to top">
+    <i class="ri-arrow-up-line"></i>
+</button>
+
+<script>
+// Back to top button functionality
+(function() {
+    var backToTopBtn = document.getElementById('backToTop');
+    var statisticsView = document.getElementById('statisticsview');
+
+    if (backToTopBtn && statisticsView) {
+        // Show/hide button based on scroll position
+        statisticsView.addEventListener('scroll', function() {
+            if (statisticsView.scrollTop > 300) {
+                backToTopBtn.classList.add('show');
+            } else {
+                backToTopBtn.classList.remove('show');
+            }
+        });
+
+        // Scroll to top when clicked
+        backToTopBtn.addEventListener('click', function() {
+            statisticsView.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        });
+    }
+})();
+</script>
+
 <input type="hidden" id="completionstateSimpleStat"  />
